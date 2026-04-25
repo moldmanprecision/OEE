@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IML Plant OEE — v7.2</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f1117;--bg2:#161b27;--bg3:#1e2535;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --text:#e8eaf0;--text2:#8b91a8;--text3:#555d78;
+  --accent:#4f8ef7;--green:#3ecf8e;--amber:#f59e0b;
+  --red:#f43f5e;--purple:#a78bfa;--teal:#2dd4bf;
+  --planned:#3ecf8e;--unplanned:#f43f5e;--other:#8b91a8;
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
+  --wf-shift:#3ecf8e;--wf-avail:#4f8ef7;--wf-cav:#a78bfa;--wf-speed:#f59e0b;--wf-quality:#f43f5e;--wf-start:#444961;
+  --shadow:rgba(0,0,0,0.3);
+}
+html.light{
+  --bg:#f4f5f7;--bg2:#ffffff;--bg3:#e8eaf0;
+  --border:rgba(0,0,0,0.08);--border2:rgba(0,0,0,0.14);
+  --text:#1a1d27;--text2:#4a5068;--text3:#8b91a8;
+  --shadow:rgba(0,0,0,0.08);
+  --wf-start:#c5cad8;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:13px;min-height:100vh;}
+.header{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:var(--bg2);border-bottom:1px solid var(--border);}
+.header-left{display:flex;align-items:center;gap:14px;}
+.logo{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--accent);letter-spacing:2px;text-transform:uppercase;}
+.header-range{font-family:var(--mono);font-size:11px;color:var(--text2);background:var(--bg3);padding:4px 10px;border-radius:4px;border:1px solid var(--border);}
+.controls{display:grid;grid-template-columns:1fr;gap:0;background:var(--bg2);border-bottom:1px solid var(--border);}
+.controls-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:7px 20px;}
+.controls-row+.controls-row{border-top:1px solid var(--border);}
+.ctrl-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-right:2px;white-space:nowrap;}
+select,input[type=date]{font-family:var(--sans);font-size:12px;background:var(--bg3);color:var(--text);border:1px solid var(--border2);border-radius:5px;padding:4px 8px;cursor:pointer;}
+select{padding-right:24px;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b91a8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;}
+select:focus,input[type=date]:focus{outline:none;border-color:var(--accent);}
+input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5);cursor:pointer;}
+.ctrl-sep{width:1px;height:20px;background:var(--border);margin:0 4px;}
+/* Theme toggle */
+.theme-btn{
+  font-size:13px;line-height:1;padding:4px 6px;border-radius:5px;cursor:pointer;
+  border:1px solid var(--border2);background:var(--bg3);color:var(--text2);
+  transition:all .15s;flex-shrink:0;
+}
+.theme-btn:hover{border-color:var(--accent);color:var(--accent);}
+/* OEE bar legend */
+.oee-legend{display:flex;gap:10px;margin-top:6px;justify-content:flex-end;}
+.oee-legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text3);}
+.oee-legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+.view-tabs{display:flex;gap:2px;background:var(--bg3);border-radius:6px;padding:3px;border:1px solid var(--border);}
+.view-tab{font-size:11px;font-weight:500;padding:4px 12px;border-radius:4px;cursor:pointer;border:none;background:transparent;color:var(--text2);transition:all .15s;}
+.view-tab.active{background:var(--accent);color:#fff;}
+.quick-btns{display:flex;gap:4px;}
+.qbtn{font-size:10px;padding:4px 8px;border-radius:4px;cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);transition:all .15s;}
+.qbtn:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+.main{padding:14px 24px;display:flex;flex-direction:column;gap:12px;}
+.row{display:grid;gap:12px;}
+.row-2{grid-template-columns:1fr 1fr;}
+.row-3{grid-template-columns:1fr 1fr 1fr;}
+.row-3-1{grid-template-columns:3fr 2fr;}
+.row-2-1{grid-template-columns:2fr 1fr;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;position:relative;}
+.card-title{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.card-title .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+/* KPI tiles */
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.kpi-card{border-left:4px solid transparent;}
+.kpi-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px;}
+.kpi-value{font-family:var(--mono);font-size:32px;font-weight:500;line-height:1;margin-bottom:2px;}
+.kpi-target{font-family:var(--mono);font-size:12px;margin-top:4px;}
+.kpi-sub{font-size:10px;color:var(--text2);line-height:1.5;}
+.kpi-good{font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:4px;}
+.kpi-card.t-shift{border-left-color:var(--wf-shift);}
+.kpi-card.t-run{border-left-color:var(--amber);}
+.kpi-card.t-oee{border-left-color:var(--accent);}
+/* Waterfall */
+.wf-wrap{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.wf-step{display:flex;align-items:stretch;min-height:46px;}
+.wf-step+.wf-step{border-top:1px solid var(--border);}
+.wf-label-col{width:140px;flex-shrink:0;display:flex;flex-direction:column;justify-content:center;padding:8px 10px 8px 12px;border-right:1px solid var(--border);}
+.wf-label-col .wf-name{font-size:11px;color:var(--text);font-weight:500;}
+.wf-label-col .wf-note{font-size:9px;color:var(--text3);margin-top:2px;line-height:1.3;}
+.wf-bar-col{flex:1;display:flex;align-items:center;padding:6px 10px;}
+.wf-bar-track{width:100%;height:26px;background:var(--bg3);border-radius:4px;overflow:hidden;position:relative;}
+.wf-bar-remain{height:100%;border-radius:4px 0 0 4px;transition:width .75s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;padding-left:8px;position:relative;}
+.wf-val{font-family:var(--mono);font-size:11px;font-weight:700;white-space:nowrap;z-index:1;position:relative;}
+.wf-tgt-line{position:absolute;top:0;height:100%;width:2px;background:rgba(255,255,255,0.6);z-index:2;}
+.wf-bar-loss{position:absolute;top:0;height:100%;opacity:0.55;background-image:repeating-linear-gradient(135deg,transparent,transparent 5px,rgba(255,255,255,0.3) 5px,rgba(255,255,255,0.3) 10px);}
+.wf-loss-col{width:84px;flex-shrink:0;display:flex;flex-direction:column;justify-content:center;padding:6px 12px 6px 6px;text-align:right;}
+.wf-loss-badge{font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;display:inline-block;white-space:nowrap;}
+.wf-loss-zero{font-size:9px;color:var(--text3);font-family:var(--mono);}
+.wf-step.wf-final{background:rgba(79,142,247,0.05);}
+.wf-step.wf-final .wf-name{font-size:12px;font-weight:700;color:var(--accent);}
+.wf-step.wf-final .wf-val{font-size:13px;}
+/* Grouped bars */
+.group-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin:8px 0 4px;display:flex;align-items:center;gap:5px;}
+.group-label .gl-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.stacked-bar-row{display:flex;align-items:center;gap:7px;margin-bottom:3px;}
+.stacked-bar-label{font-size:10px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.stacked-bar-bg{flex:1;height:13px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+.stacked-bar-fill{height:100%;border-radius:2px;transition:width .5s ease;}
+.stacked-bar-pct{font-family:var(--mono);font-size:10px;color:var(--text2);width:38px;text-align:right;flex-shrink:0;}
+.stacked-total-row{display:flex;align-items:center;gap:7px;margin-top:5px;padding-top:5px;border-top:1px solid var(--border);}
+.stacked-total-bg{flex:1;height:13px;border-radius:2px;overflow:hidden;display:flex;}
+.stacked-total-seg{height:100%;transition:width .5s ease;}
+/* Tables */
+.tbl-wrap{max-height:300px;overflow-y:auto;}
+.tbl-wrap::-webkit-scrollbar{width:4px;}
+.tbl-wrap::-webkit-scrollbar-track{background:var(--bg3);}
+.tbl-wrap::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+table{width:100%;border-collapse:collapse;font-size:11px;}
+thead th{position:sticky;top:0;z-index:1;background:var(--bg3);color:var(--text3);font-size:9px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;padding:6px 9px;text-align:left;border-bottom:1px solid var(--border2);}
+tbody td{padding:5px 9px;border-bottom:1px solid var(--border);color:var(--text);}
+tbody tr:hover td{background:var(--bg3);}
+tbody tr:last-child td{border-bottom:none;}
+.mono{font-family:var(--mono);}
+.pill{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:500;padding:2px 6px;border-radius:3px;}
+.pill-green{background:rgba(62,207,142,.15);color:var(--green);}
+.pill-amber{background:rgba(245,158,11,.15);color:var(--amber);}
+.pill-red{background:rgba(244,63,94,.15);color:var(--red);}
+.pill-gray{background:rgba(139,145,168,.1);color:var(--text2);}
+.section{display:none;}
+.section.active{display:contents;}
+
+
+
+/* ── Machine breakdown (expandable inline) ── */
+.stacked-bar-row{cursor:pointer;}
+.stacked-bar-row:hover .stacked-bar-label{color:var(--text);}
+.mach-breakdown{display:none;padding:3px 0 4px 8px;border-left:2px solid var(--border2);margin:1px 0 4px 0;}
+.mach-breakdown.open{display:block;}
+.mach-row{display:flex;align-items:center;gap:6px;margin-bottom:2px;}
+.mach-tag{font-family:var(--mono);font-size:9px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);padding:1px 4px;border-radius:3px;flex-shrink:0;width:30px;text-align:center;}
+.mach-mini-bg{flex:1;height:7px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+.mach-mini-fill{height:100%;border-radius:2px;opacity:0.75;}
+.mach-mini-pct{font-family:var(--mono);font-size:9px;color:var(--text3);width:32px;text-align:right;flex-shrink:0;}
+.wf-mach-list{padding:3px 14px 5px 165px;}
+.wf-mach-row{display:flex;align-items:center;gap:5px;margin-bottom:2px;}
+.wf-mach-tag{font-family:var(--mono);font-size:9px;color:var(--text3);width:28px;flex-shrink:0;}
+.wf-mach-bar{flex:1;height:6px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+.wf-mach-fill{height:100%;border-radius:2px;}
+.wf-mach-val{font-family:var(--mono);font-size:9px;color:var(--text3);width:36px;text-align:right;flex-shrink:0;}
+
+/* ── Drag-drop zone ── */
+#dropZone{
+  position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:16px;z-index:100;
+}
+#dropZone.drag-over{background:rgba(79,142,247,0.05);}
+.drop-box{
+  border:2px dashed var(--border2);border-radius:16px;
+  padding:48px 64px;display:flex;flex-direction:column;align-items:center;gap:12px;
+  transition:border-color .2s,background .2s;cursor:pointer;
+  background:var(--bg2);max-width:440px;width:90%;
+}
+.drop-box.hover{border-color:var(--accent);background:rgba(79,142,247,0.06);}
+.drop-icon{font-size:40px;line-height:1;}
+.drop-title{font-size:16px;font-weight:600;color:var(--text);}
+.drop-sub{font-size:12px;color:var(--text2);text-align:center;line-height:1.6;}
+.drop-btn{
+  margin-top:4px;font-size:12px;font-weight:500;
+  padding:7px 20px;border-radius:6px;border:1px solid var(--accent);
+  background:rgba(79,142,247,0.15);color:var(--accent);cursor:pointer;
+  transition:background .15s;
+}
+.drop-btn:hover{background:rgba(79,142,247,0.28);}
+.drop-btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+.drop-btn-primary:hover{background:rgba(79,142,247,0.85);}
+.drop-btn-primary:disabled{opacity:0.6;cursor:not-allowed;}
+.drop-or{font-size:11px;color:var(--text3);margin:6px 0 2px;}
+#dropErr{font-size:11px;color:var(--red);min-height:16px;}
+.drop-hint{font-family:var(--mono);font-size:10px;color:var(--text3);}
+/* hidden file input */
+#fileInput{display:none;}
+
+/* ── README edit banner ── */
+.readme-edit-banner{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  background:rgba(79,142,247,0.08);border:1px solid rgba(79,142,247,0.2);
+  border-radius:7px;padding:7px 14px;margin-bottom:14px;font-size:11px;
+  color:var(--text2);line-height:1.5;
+}
+.readme-edit-banner strong{color:var(--accent);}
+.readme-edit-banner .save-btn{
+  font-size:11px;font-weight:600;padding:4px 14px;border-radius:5px;
+  border:1px solid var(--accent);background:rgba(79,142,247,0.15);
+  color:var(--accent);cursor:pointer;white-space:nowrap;flex-shrink:0;
+  transition:background .15s;
+}
+.readme-edit-banner .save-btn:hover{background:rgba(79,142,247,0.3);}
+.readme-edit-banner .save-ok{
+  font-size:11px;color:var(--green);font-weight:500;opacity:0;
+  transition:opacity .3s;white-space:nowrap;
+}
+/* Editable text elements */
+.rm-editable{
+  border-radius:3px;transition:background .15s;cursor:text;
+  outline:none;
+}
+.rm-editable:hover{background:rgba(79,142,247,0.07);}
+.rm-editable:focus{
+  background:rgba(79,142,247,0.1);
+  box-shadow:0 0 0 1px rgba(79,142,247,0.4);
+}
+html.light .rm-editable:hover{background:rgba(79,142,247,0.06);}
+html.light .rm-editable:focus{background:rgba(79,142,247,0.08);}
+.readme-body{
+  max-width:780px;margin:0 auto;padding:4px 0 32px;
+  font-family:var(--sans);color:var(--text);line-height:1.7;
+}
+.readme-body h2{
+  font-size:13px;font-weight:700;text-transform:uppercase;
+  letter-spacing:1.2px;color:var(--text3);margin:28px 0 10px;
+  padding-bottom:6px;border-bottom:1px solid var(--border);
+}
+.readme-body h2:first-child{margin-top:0;}
+.readme-body h3{
+  font-size:12px;font-weight:600;color:var(--text2);
+  margin:16px 0 4px;display:flex;align-items:center;gap:6px;
+}
+.readme-body p{font-size:12px;color:var(--text2);margin:0 0 8px;}
+.rm-formula{
+  font-family:var(--mono);font-size:11px;
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:6px;padding:10px 14px;margin:6px 0 10px;
+  color:var(--accent);line-height:1.8;white-space:pre-wrap;
+}
+.rm-tag{
+  display:inline-block;font-size:10px;font-weight:600;
+  padding:1px 7px;border-radius:3px;margin-left:4px;
+}
+.rm-tag.planned{background:rgba(62,207,142,.15);color:var(--planned);}
+.rm-tag.unplanned{background:rgba(244,63,94,.15);color:var(--red);}
+.rm-tag.other{background:rgba(139,145,168,.1);color:var(--text2);}
+.rm-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0 14px;}
+.rm-cell{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
+.rm-cell-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;}
+.rm-cell-val{font-family:var(--mono);font-size:12px;color:var(--text);}
+.rm-cell-note{font-size:11px;color:var(--text2);margin-top:3px;}
+.rm-dt-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:11px;}
+.rm-dt-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.rm-dt-name{color:var(--text);width:130px;flex-shrink:0;}
+.rm-dt-cat{color:var(--text3);font-size:10px;}
+.rm-warn{
+  background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);
+  border-radius:6px;padding:10px 14px;font-size:11px;color:var(--amber);
+  margin:10px 0;line-height:1.6;
+}
+.rm-json-key{font-family:var(--mono);font-size:10px;background:var(--bg3);padding:1px 5px;border-radius:3px;color:var(--purple);}
+</style>
+</head>
+<body>
+<!-- ── Drag-drop entry screen ── -->
+<div id="dropZone">
+  <div class="drop-box" id="dropBox">
+    <div class="drop-icon">📂</div>
+    <div class="drop-title">IML Plant OEE — v7.2</div>
+    <div class="drop-sub">Load the latest data from the server, or drop your own <strong>oee_data.json</strong> file.</div>
+    <button class="drop-btn drop-btn-primary" id="loadServerBtn" onclick="loadServerData()">⬇ Load current data</button>
+    <div class="drop-or">or</div>
+    <button class="drop-btn" onclick="document.getElementById('fileInput').click()">Choose file…</button>
+    <input type="file" id="fileInput" accept=".json,application/json">
+    <div id="dropErr"></div>
+  </div>
+  <div class="drop-hint">Alternatively, switch to the README tab ↗ for metric definitions</div>
+  <div style="margin-top:18px">
+    <div class="view-tabs">
+      <button class="view-tab active" id="dropTabDash" onclick="setDropTab('dash',this)">Dashboard</button>
+      <button class="view-tab" id="dropTabReadme" onclick="setDropTab('readme',this)">README</button>
+    </div>
+  </div>
+  <div id="dropReadmeInline" style="display:none;max-height:65vh;overflow-y:auto;max-width:820px;width:95%;padding:0 16px">
+  </div>
+</div>
+<div id="app" style="display:none">
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo">IML</div>
+    <div>
+      <div style="font-size:15px;font-weight:500">Plant OEE Dashboard</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:1px">Overall Equipment Effectiveness</div>
+    </div>
+  </div>
+  <div class="header-range" id="headerRange">—</div>
+</div>
+
+<div class="controls">
+  <div class="controls-row">
+    <span class="ctrl-label">View</span>
+    <div class="view-tabs">
+      <button class="view-tab active" onclick="switchView('plant',this)">Overall</button>
+      <button class="view-tab" onclick="switchView('machine',this)">Drilldowns</button>
+      <button class="view-tab" onclick="switchView('readme',this)">README</button>
+    </div>
+    <div class="ctrl-sep"></div>
+    <span class="ctrl-label">From</span>
+    <input type="date" id="fDateFrom" onchange="applyFilters()">
+    <span class="ctrl-label">To</span>
+    <input type="date" id="fDateTo" onchange="applyFilters()">
+    <div class="quick-btns">
+      <button class="qbtn" onclick="setQuick('all')">All</button>
+      <button class="qbtn" onclick="setQuick('7')">7d</button>
+      <button class="qbtn" onclick="setQuick('14')">14d</button>
+    </div>
+    <div class="ctrl-sep"></div>
+    <span class="ctrl-label">Shift</span>
+    <select id="fShift" onchange="applyFilters()"><option value="all">Both</option><option value="A">Shift A</option><option value="B">Shift B</option></select>
+  </div>
+  <div class="controls-row">
+    <span class="ctrl-label">Machine</span>
+    <select id="fMachine" onchange="applyFilters()"><option value="all">All machines</option></select>
+    <span class="ctrl-label">Type</span>
+    <select id="fType" onchange="cascadeFilters()"><option value="all">All types</option><option value="Container">Container</option><option value="Lid">Lid</option></select>
+    <span class="ctrl-label">Product</span>
+    <select id="fProduct" onchange="applyFilters()" style="max-width:130px"><option value="all">All products</option></select>
+    <span class="ctrl-label">Operator</span>
+    <select id="fOperator" onchange="applyFilters()" style="max-width:110px"><option value="all">All operators</option></select>
+    <div style="margin-left:auto">
+      <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle light/dark theme">☀︎</button>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- KPI row -->
+<div class="kpi-row">
+  <div class="card kpi-card t-shift">
+    <div class="kpi-label">Shift run %</div>
+    <div class="kpi-value" id="k-shift" style="color:var(--wf-shift)">—</div>
+    <div class="kpi-sub" id="k-shift-sub">machine-slots ran</div>
+  </div>
+  <div class="card kpi-card t-run">
+    <div class="kpi-label">OEE — running machines</div>
+    <div class="kpi-value" id="k-run" style="color:var(--amber)">—</div>
+    <div class="kpi-target" id="k-run-target" style="color:var(--teal)">—</div>
+    <div class="kpi-good" id="k-run-good">—</div>
+  </div>
+  <div class="card kpi-card t-oee">
+    <div class="kpi-label">Overall OEE</div>
+    <div class="kpi-value" id="k-oee" style="color:var(--accent)">—</div>
+    <div class="kpi-sub">OEE running × shift run %</div>
+  </div>
+</div>
+
+<!-- ── PLANT TAB ─────────────────────────────────────────────────── -->
+<div id="view-plant" class="section active">
+
+  <!-- Row 1: Waterfall | Not-run reasons | Downtime split -->
+  <div class="row row-3">
+    <div class="card" style="grid-column:1">
+      <div class="card-title"><span class="dot" style="background:var(--accent)"></span>OEE Waterfall
+        <span style="font-size:9px;color:var(--teal);margin-left:6px;font-weight:400">— target OEE</span>
+      </div>
+      <div class="wf-wrap" id="wfPlant"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--wf-shift)"></span>Not-run reasons
+        <span style="font-size:9px;color:var(--text3);margin-left:4px;font-weight:400">% of total slots</span>
+      </div>
+      <div id="notRunBarsPlant"></div>
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+        <div class="card-title" style="margin-bottom:6px"><span class="dot" style="background:var(--text3)"></span>Not-run log</div>
+        <div class="tbl-wrap" style="max-height:160px">
+          <table>
+            <thead><tr><th>Date</th><th>Shift</th><th>Machine</th><th>Category</th><th>Reason</th></tr></thead>
+            <tbody id="notRunLog"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--wf-avail)"></span>Downtime split
+        <span style="font-size:9px;color:var(--text3);margin-left:4px;font-weight:400">% of shift hrs</span>
+      </div>
+      <div id="dtBarsPlant"></div>
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;gap:8px" id="dtStats"></div>
+    </div>
+  </div>
+
+  <!-- Row 2: Machine OEE heatmap | Daily trend -->
+  <div class="row row-2">
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--accent)"></span>Machine OEE (overall)</div>
+      <div style="height:190px"><canvas id="machineOeeBar"></canvas></div>
+      <div class="oee-legend">
+        <div class="oee-legend-item"><div class="oee-legend-dot" style="background:rgba(62,207,142,0.75)"></div>≥ 85%</div>
+        <div class="oee-legend-item"><div class="oee-legend-dot" style="background:rgba(245,158,11,0.75)"></div>70–84%</div>
+        <div class="oee-legend-item"><div class="oee-legend-dot" style="background:rgba(244,63,94,0.75)"></div>&lt; 70%</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--teal)"></span>Daily OEE trend</div>
+      <div style="height:190px"><canvas id="trendLine"></canvas></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── MACHINE TAB ───────────────────────────────────────────────── -->
+<div id="view-machine" class="section">
+
+  <!-- Row 1: Loss by machine (LHS) | Daily loss composition (RHS) -->
+  <div class="row row-2">
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--amber)"></span>Loss composition by machine</div>
+      <div style="height:220px"><canvas id="lossComposition"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--teal)"></span>Daily loss composition</div>
+      <div style="height:220px"><canvas id="dailyLossBar"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Row 2: Shift A vs B comparison -->
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--teal)"></span>Shift A vs Shift B</div>
+    <div class="tbl-wrap" style="max-height:220px">
+      <table>
+        <thead><tr><th>Metric</th><th>Shift A</th><th>Shift B</th><th>Combined</th></tr></thead>
+        <tbody id="shiftCompareBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Row 3: Detail table -->
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--purple)"></span>Machine × Shift detail</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Date</th><th>Machine</th><th>Shift</th><th>Operator</th><th>Product</th><th>Type</th>
+          <th>Target</th><th>Actual</th><th>Rejected</th>
+          <th>OEE%</th><th>Avail loss</th><th>Cav loss</th><th>Speed loss</th><th>Qual loss</th>
+          <th>DT hrs</th><th>Run hrs</th>
+        </tr></thead>
+        <tbody id="machineTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ── README TAB ─────────────────────────────────────────────────── -->
+<div id="view-readme" class="section">
+  <div style="max-width:820px;margin:0 auto;padding:4px 0 32px">
+    <div class="readme-edit-banner">
+      <span>✏️ <strong>This README is editable.</strong> Double-click any text to make changes. Press <strong>Ctrl+S</strong> (or the button) to save — the page HTML will download with your edits baked in. Please only edit content you understand.</span>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <span class="save-ok" id="saveOkMsg">✓ Saved</span>
+        <button class="save-btn" onclick="saveReadme()">Save ↓</button>
+      </div>
+    </div>
+    <div class="readme-body" id="readmeContent"></div>
+  </div>
+</div>
+
+
+<div style="font-size:10px;color:var(--text3);padding:8px 4px 4px;border-top:1px solid var(--border);margin-top:2px">
+  <div style="line-height:1.8">
+    <span style="color:var(--teal);font-weight:600">* Target OEE assumptions:</span>
+    &nbsp;(1) Unplanned downtime reduced by <b style="color:var(--text2)">50%</b> &nbsp;·&nbsp;
+    (2) Cavity loss reduced by <b style="color:var(--text2)">80%</b> &nbsp;·&nbsp;
+    (3) Speed loss reduced by <b style="color:var(--text2)">50%</b> &nbsp;·&nbsp;
+    Planned downtime &amp; quality held constant.
+  </div>
+  <div style="line-height:1.8;margin-top:2px">
+    <span style="color:var(--text3)">†</span> <b style="color:var(--text3)">Speed loss note:</b> computed as residual after availability, cavity &amp; quality — slightly understated as it absorbs positive covariance between factors (good shifts tend to be good on all dimensions simultaneously).
+  </div>
+</div>
+</div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+let DB=null;
+const charts={};
+const DT_KEYS  =['dt_label','dt_colour','dt_mould','dt_label_unavail','dt_proc_fail','dt_mach_bkdn','dt_mould_bkdn','dt_other'];
+const DT_LABELS=['Label change','Colour change','Mould change','Label unavail.','Process failure','Mach. breakdown','Mould breakdown','Other'];
+const DT_CAT={'Label change':'planned','Colour change':'planned','Mould change':'planned','Label unavail.':'unplanned','Process failure':'unplanned','Mach. breakdown':'unplanned','Mould breakdown':'unplanned','Other':'other'};
+const CAT_COLOR={planned:'var(--planned)',unplanned:'var(--unplanned)',other:'var(--other)'};
+const CAT_LABEL={planned:'Planned',unplanned:'Unplanned',other:'Other'};
+const WF_COLORS={start:'var(--wf-start)',shift:'var(--wf-shift)',avail:'var(--wf-avail)',cav:'var(--wf-cav)',speed:'var(--wf-speed)',quality:'var(--wf-quality)'};
+
+function categoriseNotRun(reason){
+  if(!reason||reason.includes('Missing'))return'other';
+  const n=parseInt(reason);
+  if([1,2,3,4].includes(n))return'planned';
+  if([5,6,7,8,9].includes(n))return'unplanned';
+  return'other';
+}
+
+// ═══════════════════════════════════════════════
+// FORMULA ENGINE
+// ═══════════════════════════════════════════════
+function compute(records,not_run_list,all_slots){
+  if(!records.length)return null;
+  // Weighted-average approach — each metric is wtd avg of per-row rates
+  // weight = duration_hrs so every machine-hour counts equally
+  // regardless of product type (containers vs lids vs spoons).
+  // Speed is residual: avail × cav × speed × qual = oee_running always.
+  const s=fn=>records.reduce((a,r)=>a+(fn(r)||0),0);
+  const totalDurW=s(r=>r.duration_hrs)||1;
+  const wt=(r,v)=>v*(r.duration_hrs||0);
+  const avail_loss=s(r=>wt(r,r.duration_hrs?(r.duration_hrs-r.run_hrs)/r.duration_hrs:0))/totalDurW;
+  const cav_loss=s(r=>wt(r,r.total_cavities?(r.total_cavities-r.running_cavities)/r.total_cavities:0))/totalDurW;
+  const quality_loss=s(r=>wt(r,(r.total_rej_pcs+r.actual_good_pcs)>0?r.total_rej_pcs/(r.total_rej_pcs+r.actual_good_pcs):0))/totalDurW;
+  const oee_running=s(r=>wt(r,r.target_pcs?r.actual_good_pcs/r.target_pcs:0))/totalDurW;
+  // Raw sums for display (good pcs, target pcs)
+  const total_shift_hrs=s(r=>r.duration_hrs),total_run_hrs=s(r=>r.run_hrs);
+  const total_target=s(r=>r.target_pcs),total_actual=s(r=>r.actual_good_pcs),total_rej=s(r=>r.total_rej_pcs);
+  // ran   = unique (date,shift,machine) with target>0 in OEE tracker = records
+  // total = all slots from Shift tracker = all_slots
+  // not run count = total - ran (delta)
+  const seen_ran=new Set();
+  records.forEach(r=>seen_ran.add(r.date+r.shift+r.machine_no));
+  const ran_cnt=seen_ran.size;
+  const seen_all=new Set();
+  all_slots.forEach(s=>seen_all.add(s.date+s.shift+s.machine_no));
+  const total_slots=seen_all.size;
+  const not_ran_cnt=total_slots-ran_cnt;
+  const shift_run_pct=total_slots?ran_cnt/total_slots:1;
+  const avail_rate=1-avail_loss,cav_rate=1-cav_loss,quality_rate=1-quality_loss;
+  // Speed loss: residual — guarantees avail×cav×speed×qual = oee_running
+  const denom_spd=avail_rate*cav_rate*quality_rate;
+  const speed_rate=denom_spd>0?oee_running/denom_spd:1;
+  const speed_loss=Math.max(0,1-speed_rate);
+  const overall_oee=oee_running*shift_run_pct;
+
+  // ── Target OEE assumptions:
+  // (1) Unplanned downtime halved        → better availability
+  // (2) Unplanned shift-not-run halved   → better shift run %
+  // (3) Cavity loss cut 80%              → better cavity perf
+  // (4) Speed loss halved                → better speed perf
+  // Planned downtime, planned not-run, quality, other unchanged
+
+  // Availability: halve unplanned DT categories
+  const unplanned_dt_keys=['dt_label_unavail','dt_proc_fail','dt_mach_bkdn','dt_mould_bkdn'];
+  const planned_dt_keys  =['dt_label','dt_colour','dt_mould'];
+  const other_dt_keys    =['dt_other'];
+  const total_unplanned_dt=s(r=>unplanned_dt_keys.reduce((a,k)=>a+(r[k]||0),0));
+  const total_planned_dt  =s(r=>planned_dt_keys.reduce((a,k)=>a+(r[k]||0),0));
+  const total_other_dt    =s(r=>other_dt_keys.reduce((a,k)=>a+(r[k]||0),0));
+  const tgt_dt_hrs = total_planned_dt + total_unplanned_dt*0.5 + total_other_dt;
+  const tgt_avail_loss= total_shift_hrs?tgt_dt_hrs/total_shift_hrs:0;
+  const tgt_avail_rate=1-tgt_avail_loss;
+
+  // Shift run %: halve unplanned not-run slots (reason codes 5-9)
+  const unplanned_nr = not_run_list.filter(r=>categoriseNotRun(r.reason)==='unplanned').length;
+  const planned_nr   = not_run_list.filter(r=>categoriseNotRun(r.reason)==='planned').length;
+  const other_nr     = not_run_list.filter(r=>categoriseNotRun(r.reason)==='other').length;
+  const tgt_not_ran  = planned_nr + unplanned_nr*0.5 + other_nr;
+  const tgt_ran      = total_slots - tgt_not_ran;
+  const tgt_shift_run_pct = total_slots ? tgt_ran/total_slots : 1;
+
+  const tgt_cav_loss  = cav_loss * 0.2;  // 80% reduction
+  const tgt_cav_rate  = 1-tgt_cav_loss;
+  const tgt_speed_loss= speed_loss*0.5;
+  const tgt_speed_rate= 1-tgt_speed_loss;
+  const tgt_oee_running   = tgt_avail_rate*tgt_cav_rate*tgt_speed_rate*quality_rate;
+  const tgt_overall_oee   = tgt_oee_running*tgt_shift_run_pct;
+
+  const dt_breakdown={};
+  DT_KEYS.forEach((k,i)=>{
+    const hrs=s(r=>r[k]);
+    dt_breakdown[DT_LABELS[i]]={pct:total_shift_hrs?hrs/total_shift_hrs:0,hrs};
+  });
+  const reason_counts={};
+  not_run_list.forEach(r=>{const key=r.reason||'Missing reason code';reason_counts[key]=(reason_counts[key]||0)+1;});
+  const reason_pcts={};
+  Object.entries(reason_counts).forEach(([k,v])=>reason_pcts[k]=total_slots?v/total_slots:0);
+
+  // Per-machine downtime for avail waterfall breakdown
+  const avail_mach=[];
+  const machSet=[...new Set(records.map(r=>r.machine_no))];
+  machSet.forEach(m=>{
+    const dt_hrs=records.filter(r=>r.machine_no===m).reduce((a,r)=>a+(r.duration_hrs||0)-(r.run_hrs||0),0);
+    if(dt_hrs>0) avail_mach.push({m,dt_hrs});
+  });
+  avail_mach.sort((a,b)=>b.dt_hrs-a.dt_hrs);
+
+  return {
+    total_shift_hrs,total_run_hrs,total_target,total_actual,total_rej,
+    avail_loss,cav_loss,speed_loss,quality_loss,
+    oee_running,shift_run_pct,overall_oee,
+    avail_rate,cav_rate,speed_rate,quality_rate,
+    ran_cnt,not_ran_cnt,total_slots,
+    dt_breakdown,reason_pcts,
+    tgt_oee_running,tgt_overall_oee,tgt_avail_loss,tgt_cav_loss,tgt_speed_loss,tgt_shift_run_pct,
+    not_run_list:not_run_list, avail_mach,
+  };
+}
+
+// ═══════════════════════════════════════════════
+// FILTERING
+// ═══════════════════════════════════════════════
+function getFiltered(){
+  const from=document.getElementById('fDateFrom').value,to=document.getElementById('fDateTo').value;
+  const shift=document.getElementById('fShift').value,machine=document.getElementById('fMachine').value;
+  const type=document.getElementById('fType').value,product=document.getElementById('fProduct').value;
+  const operator=document.getElementById('fOperator').value;
+  const inRange=d=>(!from||d>=from)&&(!to||d<=to);
+  const records=DB.records.filter(r=>
+    inRange(r.date)&&(shift==='all'||r.shift===shift)&&(machine==='all'||r.machine_no==machine)&&
+    (type==='all'||r.product_type===type)&&(product==='all'||r.product_name===product)&&
+    (operator==='all'||r.operator_name===operator));
+  const not_run=DB.not_run.filter(r=>inRange(r.date)&&(shift==='all'||r.shift===shift)&&(machine==='all'||r.machine_no==machine));
+  // Use all_slots from shift tracker (ground truth) — avoids missing slots
+  // where a machine ran but OEE data was not filled in (target=0, actual=0)
+  const all_slots=DB.all_slots
+    ? DB.all_slots.filter(s=>inRange(s.date)&&(shift==='all'||s.shift===shift)&&(machine==='all'||s.machine_no==machine))
+    : [...records.map(r=>({date:r.date,shift:r.shift,machine_no:r.machine_no})),...not_run];
+  return{records,not_run,all_slots};
+}
+
+function setQuick(days){
+  const dates=[...new Set(DB.records.map(r=>r.date))].sort();
+  const last=dates[dates.length-1];
+  document.getElementById('fDateFrom').value=days==='all'?dates[0]:dates[Math.max(0,dates.length-parseInt(days))];
+  document.getElementById('fDateTo').value=last;
+  applyFilters();
+}
+
+// ═══════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════
+const pct=(v,d=1)=>(v*100).toFixed(d)+'%';
+const num=v=>v>=1e6?(v/1e6).toFixed(2)+'M':v>=1e3?(v/1e3).toFixed(1)+'K':Math.round(v).toString();
+const pill=v=>{const p=v*100,c=p>=85?'pill-green':p>=70?'pill-amber':'pill-red';return`<span class="pill ${c}">${p.toFixed(1)}%</span>`;};
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+function cTick(){return document.documentElement.classList.contains('light')?'#4a5068':'#555d78';}
+function cGrid(){return document.documentElement.classList.contains('light')?'rgba(0,0,0,0.06)':'rgba(255,255,255,0.05)';}
+function cLegend(){return document.documentElement.classList.contains('light')?'#4a5068':'#8b91a8';}
+
+// ═══════════════════════════════════════════════
+// WATERFALL with target line
+// ═══════════════════════════════════════════════
+function renderWaterfall(id,d){
+  const sr=d.shift_run_pct,av=d.avail_rate,cv=d.cav_rate,sp=d.speed_rate;
+  const steps=[
+    {key:'start',label:'Theoretical max',note:'100% baseline',val:1,loss:null,tgt:1,color:WF_COLORS.start},
+    {key:'shift',label:'Shift run %',note:`${d.ran_cnt}/${d.total_slots} slots ran`,val:sr,loss:1-sr,tgt:d.tgt_shift_run_pct||sr,color:WF_COLORS.shift},
+    {key:'avail',label:'Availability',note:`${pct(d.avail_loss)} downtime`,val:sr*av,loss:sr*(1-av),tgt:sr*(1-d.tgt_avail_loss),color:WF_COLORS.avail},
+    {key:'cav',label:'Cavity perf.',note:`${pct(d.cav_loss)} fewer cavities`,val:sr*av*cv,loss:sr*av*(1-cv),tgt:sr*(1-d.tgt_avail_loss)*(1-d.tgt_cav_loss),color:WF_COLORS.cav},
+    {key:'speed',label:'Speed perf.',note:`${pct(d.speed_loss)} residual`,val:sr*av*cv*sp,loss:sr*av*cv*(1-sp),tgt:sr*(1-d.tgt_avail_loss)*(1-d.tgt_cav_loss)*(1-d.tgt_speed_loss),color:WF_COLORS.speed},
+    {key:'quality',label:'Quality',note:`${pct(d.quality_loss)} rejection`,val:d.overall_oee,loss:sr*av*cv*sp*(1-d.quality_rate),tgt:d.tgt_overall_oee,color:WF_COLORS.quality},
+    {key:'final',label:'Overall OEE',note:`target: ${pct(d.tgt_overall_oee)} *`,val:d.overall_oee,loss:null,tgt:d.tgt_overall_oee,color:WF_COLORS.start,isFinal:true},
+  ];
+  document.getElementById(id).innerHTML=steps.map((s,i)=>{
+    const lossW=s.loss?s.loss*100:0;
+    const remainW=s.val*100;
+    const tgtPct=s.tgt*100;
+    let badge='';
+    if(s.loss!==null&&s.loss>0.0005) badge=`<span class="wf-loss-badge" style="background:${s.color}22;color:${s.color}">–${pct(s.loss)}</span>`;
+    else if(!s.isFinal&&s.loss!==null) badge=`<span class="wf-loss-zero">no loss</span>`;
+    const tgtLine=tgtPct>remainW+0.5?`<div class="wf-tgt-line" style="left:${tgtPct}%" title="Target: ${pct(s.tgt)}"></div>`:'';
+    return`<div class="wf-step${s.isFinal?' wf-final':''}">
+      <div class="wf-label-col">
+        <div class="wf-name">${s.label}</div>
+        <div class="wf-note">${s.note}</div>
+      </div>
+      <div class="wf-bar-col">
+        <div class="wf-bar-track">
+          <div class="wf-bar-remain" style="width:${remainW}%;background:${s.color}${s.isFinal?'dd':'55'};border-right:2px solid ${s.color}">
+            <span class="wf-val" style="color:${s.isFinal?'#fff':s.color}">${pct(s.val)}</span>
+          </div>
+          ${lossW>0.05?`<div class="wf-bar-loss" style="left:${remainW}%;width:${lossW}%;background-color:${s.color}"></div>`:''}
+          ${tgtLine}
+        </div>
+      </div>
+      <div class="wf-loss-col">${badge}</div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+// GROUPED BARS
+// ═══════════════════════════════════════════════
+function machineBreakdownHtml(machMap, color){
+  // machMap: {machine_no: count_or_hrs} — top 4 by value
+  const entries=Object.entries(machMap).map(([m,v])=>({m,v})).sort((a,b)=>b.v-a.v).slice(0,5);
+  if(!entries.length) return '';
+  const maxV=entries[0].v;
+  return entries.map(e=>`<div class="mach-row">
+    <div class="mach-tag">M${e.m}</div>
+    <div class="mach-mini-bg"><div class="mach-mini-fill" style="width:${maxV>0?e.v/maxV*100:0}%;background:${color}"></div></div>
+    <div class="mach-mini-pct">${e.v.toFixed(1)}</div>
+  </div>`).join('');
+}
+
+function toggleBreakdown(el){
+  const bd=el.nextElementSibling;
+  if(bd&&bd.classList.contains('mach-breakdown')){
+    bd.classList.toggle('open');
+  }
+}
+
+function renderGroupedBars(containerId,entries,labelWidth){
+  const groups={planned:[],unplanned:[],other:[]};
+  entries.forEach(e=>groups[e.cat].push(e));
+  const catTotals={planned:0,unplanned:0,other:0};
+  entries.forEach(e=>catTotals[e.cat]+=e.pct);
+  const grandTotal=entries.reduce((s,e)=>s+e.pct,0);
+  let html='';
+  ['planned','unplanned','other'].forEach(cat=>{
+    if(!groups[cat].length)return;
+    html+=`<div class="group-label"><span class="gl-dot" style="background:${CAT_COLOR[cat]}"></span>${CAT_LABEL[cat]} — ${pct(catTotals[cat])}</div>`;
+    groups[cat].forEach(e=>{
+      const barW=grandTotal>0?Math.round(e.pct/grandTotal*100):0;
+      const hasMach=e.machMap&&Object.keys(e.machMap).length>0;
+      const uid='bd_'+containerId+'_'+Math.random().toString(36).slice(2,7);
+      html+=`<div class="stacked-bar-row" onclick="toggleBreakdown(this)" title="${hasMach?'Click to see top machines':''}">
+        <div class="stacked-bar-label" style="flex:0 0 ${labelWidth||170}px">${e.label}${hasMach?` <span style="font-size:8px;color:var(--text3)">▾</span>`:''}</div>
+        <div class="stacked-bar-bg"><div class="stacked-bar-fill" style="width:${barW}%;background:${CAT_COLOR[cat]}"></div></div>
+        <div class="stacked-bar-pct">${pct(e.pct)}</div>
+      </div>
+      ${hasMach?`<div class="mach-breakdown">${machineBreakdownHtml(e.machMap,CAT_COLOR[cat])}</div>`:''}`;
+    });
+  });
+  html+=`<div class="stacked-total-row">
+    <div class="stacked-bar-label" style="font-weight:600;color:var(--text);flex:0 0 ${labelWidth||170}px">Total</div>
+    <div class="stacked-total-bg">
+      ${['planned','unplanned','other'].map(cat=>{const w=grandTotal>0?(catTotals[cat]/grandTotal*100):0;return w>0?`<div class="stacked-total-seg" style="width:${w}%;background:${CAT_COLOR[cat]}"></div>`:'';}).join('')}
+    </div>
+    <div class="stacked-bar-pct" style="color:var(--text);font-weight:600">${pct(grandTotal)}</div>
+  </div>`;
+  document.getElementById(containerId).innerHTML=html;
+}
+
+function buildNotRunEntries(reason_pcts, not_run){
+  // Build machine breakdown map per reason
+  const machByReason={};
+  (not_run||[]).forEach(r=>{
+    const key=r.reason||'Missing reason code';
+    if(!machByReason[key]) machByReason[key]={};
+    machByReason[key][r.machine_no]=(machByReason[key][r.machine_no]||0)+1;
+  });
+  return Object.entries(reason_pcts).map(([label,p])=>({
+    label,pct:p,cat:categoriseNotRun(label),machMap:machByReason[label]||{}
+  })).sort((a,b)=>b.pct-a.pct);
+}
+function buildDtEntries(dt_breakdown, records){
+  // Build machine breakdown map per DT category (in hrs)
+  const machByDt={};
+  DT_KEYS.forEach((k,i)=>{
+    const label=DT_LABELS[i];
+    machByDt[label]={};
+    (records||[]).forEach(r=>{
+      const h=r[k]||0;
+      if(h>0) machByDt[label][r.machine_no]=(machByDt[label][r.machine_no]||0)+h;
+    });
+  });
+  return DT_LABELS.map(label=>({
+    label,
+    pct:dt_breakdown[label]?.pct||0,
+    hrs:dt_breakdown[label]?.hrs||0,
+    cat:DT_CAT[label]||'other',
+    machMap:machByDt[label]||{}
+  })).filter(e=>e.pct>0.0001).sort((a,b)=>b.pct-a.pct);
+}
+
+// ═══════════════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════════════
+function renderMachineBar(records,not_run){
+  destroyChart('machineOeeBar');
+  const from=document.getElementById('fDateFrom').value,to=document.getElementById('fDateTo').value;
+  const shift=document.getElementById('fShift').value;
+  const inRange=d=>(!from||d>=from)&&(!to||d<=to);
+  const machines=[...new Set(records.map(r=>r.machine_no))].sort((a,b)=>a-b);
+  const labels=[],vals=[],colors=[];
+  machines.forEach(m=>{
+    const mr=records.filter(r=>r.machine_no===m);
+    const mnr=DB.not_run.filter(r=>r.machine_no==m&&inRange(r.date)&&(shift==='all'||r.shift===shift));
+    const ms=[...mr.map(r=>({date:r.date,shift:r.shift,machine_no:r.machine_no})),...mnr];
+    const c=compute(mr,mnr,ms);if(!c)return;
+    const oee=c.overall_oee*100;
+    labels.push(`M${m}`);vals.push(+oee.toFixed(1));
+    colors.push(oee>=85?'rgba(62,207,142,0.75)':oee>=70?'rgba(245,158,11,0.75)':'rgba(244,63,94,0.75)');
+  });
+  const ctx=document.getElementById('machineOeeBar').getContext('2d');
+  charts['machineOeeBar']=new Chart(ctx,{type:'bar',data:{labels,datasets:[{data:vals,backgroundColor:colors,borderRadius:3,barPercentage:0.7}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`OEE: ${c.raw}%`}}},
+    scales:{y:{min:0,max:110,ticks:{color:cTick(),callback:v=>v+'%',font:{size:10}},grid:{color:cGrid()}},x:{ticks:{color:cTick(),font:{size:9}},grid:{display:false}}}}});
+}
+
+function renderTrendLine(){
+  destroyChart('trendLine');
+  const from=document.getElementById('fDateFrom').value,to=document.getElementById('fDateTo').value;
+  const shift=document.getElementById('fShift').value,machine=document.getElementById('fMachine').value;
+  const type=document.getElementById('fType').value,prod=document.getElementById('fProduct').value;
+  const operator=document.getElementById('fOperator').value;
+  const inRange=d=>(!from||d>=from)&&(!to||d<=to);
+  const dates=[...new Set(DB.records.filter(r=>inRange(r.date)).map(r=>r.date))].sort();
+  const ctx=document.getElementById('trendLine').getContext('2d');
+  if(dates.length<2){ctx.clearRect(0,0,9999,9999);ctx.fillStyle=cTick();ctx.font='12px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText('Select multiple dates to see trend',ctx.canvas.width/2,ctx.canvas.height/2);return;}
+  const ov=[],rv=[];
+  dates.forEach(date=>{
+    const dr=DB.records.filter(r=>r.date===date&&(shift==='all'||r.shift===shift)&&(machine==='all'||r.machine_no==machine)&&(type==='all'||r.product_type===type)&&(prod==='all'||r.product_name===prod)&&(operator==='all'||r.operator_name===operator));
+    const dnr=DB.not_run.filter(r=>r.date===date&&(shift==='all'||r.shift===shift)&&(machine==='all'||r.machine_no==machine));
+    const ds=[...dr.map(r=>({date:r.date,shift:r.shift,machine_no:r.machine_no})),...dnr];
+    const c=compute(dr,dnr,ds);
+    ov.push(c?+(c.overall_oee*100).toFixed(1):null);
+    rv.push(c?+(c.oee_running*100).toFixed(1):null);
+  });
+  charts['trendLine']=new Chart(ctx,{type:'line',
+    data:{labels:dates.map(d=>{const p=d.split('-');return`${p[2]}/${p[1]}`;}),
+    datasets:[{label:'Overall OEE',data:ov,borderColor:'#4f8ef7',backgroundColor:'rgba(79,142,247,0.08)',tension:0.3,pointRadius:3,fill:true},{label:'OEE (running)',data:rv,borderColor:'#f59e0b',backgroundColor:'transparent',tension:0.3,pointRadius:3,borderDash:[4,4]}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:cLegend(),font:{size:10},padding:8}}},
+    scales:{y:{min:0,max:110,ticks:{color:cTick(),callback:v=>v+'%',font:{size:10}},grid:{color:cGrid()}},x:{ticks:{color:cTick(),font:{size:9}},grid:{display:false}}}}});
+}
+
+function buildMachineTooltipData(records, not_run, inRange, shift){
+  // Per machine: top not-run reasons + top DT categories
+  const machData={};
+  const allMachines=[...new Set([...records.map(r=>r.machine_no),...not_run.map(r=>r.machine_no)])];
+  allMachines.forEach(m=>{
+    const nr=not_run.filter(r=>r.machine_no==m);
+    const reasonCounts={};
+    nr.forEach(r=>{const k=r.reason||'Unknown';reasonCounts[k]=(reasonCounts[k]||0)+1;});
+    const topReasons=Object.entries(reasonCounts).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    const mr=records.filter(r=>r.machine_no===m);
+    const dtTotals={};
+    DT_KEYS.forEach((k,i)=>{
+      const h=mr.reduce((s,r)=>s+(r[k]||0),0);
+      if(h>0.01) dtTotals[DT_LABELS[i]]=h;
+    });
+    const topDt=Object.entries(dtTotals).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    machData[m]={topReasons,topDt};
+  });
+  return machData;
+}
+
+function machTooltipCallback(machData){
+  return {
+    callbacks:{
+      label:ctx=>`${ctx.dataset.label}: ${ctx.raw}%`,
+      afterBody:ctx=>{
+        const m=parseInt(ctx[0].label.replace('M',''));
+        const d=machData[m];
+        if(!d) return[];
+        const lines=[];
+        if(d.topReasons.length){
+          lines.push('');
+          lines.push('Not-run reasons:');
+          d.topReasons.forEach(([r,c])=>lines.push(`  ${r.slice(0,30)}: ${c} slots`));
+        }
+        if(d.topDt.length){
+          lines.push('');
+          lines.push('Downtime causes:');
+          d.topDt.forEach(([r,h])=>lines.push(`  ${r}: ${h.toFixed(1)}h`));
+        }
+        return lines;
+      }
+    }
+  };
+}
+
+function renderLossComposition(records){
+  destroyChart('lossComposition');
+  const from=document.getElementById('fDateFrom').value,to=document.getElementById('fDateTo').value;
+  const shift=document.getElementById('fShift').value;
+  const inRange=d=>(!from||d>=from)&&(!to||d<=to);
+  const machines=[...new Set(records.map(r=>r.machine_no))].sort((a,b)=>a-b);
+  const labels=[],snr=[],avail=[],cav=[],speed=[],qual=[];
+  const filteredNR=DB.not_run.filter(r=>inRange(r.date)&&(shift==='all'||r.shift===shift));
+  const machData=buildMachineTooltipData(records,filteredNR,inRange,shift);
+  machines.forEach(m=>{
+    const mr=records.filter(r=>r.machine_no===m);
+    const mnr=filteredNR.filter(r=>r.machine_no==m);
+    const ms=[...mr.map(r=>({date:r.date,shift:r.shift,machine_no:r.machine_no})),...mnr];
+    const c=compute(mr,mnr,ms);if(!c)return;
+    labels.push(`M${m}`);
+    snr.push(+((1-c.shift_run_pct)*100).toFixed(1));
+    avail.push(+(c.avail_loss*100).toFixed(1));
+    cav.push(+(c.cav_loss*100).toFixed(1));
+    speed.push(+(c.speed_loss*100).toFixed(1));
+    qual.push(+(c.quality_loss*100).toFixed(1));
+  });
+  const ctx=document.getElementById('lossComposition').getContext('2d');
+  charts['lossComposition']=new Chart(ctx,{type:'bar',
+    data:{labels,datasets:[
+      {label:'Shift not run',data:snr,backgroundColor:'#3ecf8e44',borderColor:'#3ecf8e',borderWidth:1,stack:'l'},
+      {label:'Avail (DT)',data:avail,backgroundColor:'#4f8ef755',borderColor:'#4f8ef7',borderWidth:1,stack:'l'},
+      {label:'Cavity',data:cav,backgroundColor:'#a78bfa55',borderColor:'#a78bfa',borderWidth:1,stack:'l'},
+      {label:'Speed',data:speed,backgroundColor:'#f59e0b55',borderColor:'#f59e0b',borderWidth:1,stack:'l'},
+      {label:'Quality',data:qual,backgroundColor:'#f43f5e55',borderColor:'#f43f5e',borderWidth:1,stack:'l'},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{color:cLegend(),font:{size:10},padding:6}},
+             tooltip:{mode:'index',intersect:false,...machTooltipCallback(machData)}},
+    scales:{y:{ticks:{color:cTick(),callback:v=>v+'%',font:{size:10}},grid:{color:cGrid()}},x:{ticks:{color:cTick(),font:{size:9}},grid:{display:false}}}}});
+}
+
+function renderDailyLoss(records,not_run){
+  destroyChart('dailyLossBar');
+  const from=document.getElementById('fDateFrom').value,to=document.getElementById('fDateTo').value;
+  const shift=document.getElementById('fShift').value;
+  const inRange=d=>(!from||d>=from)&&(!to||d<=to);
+  const dates=[...new Set(records.filter(r=>inRange(r.date)).map(r=>r.date))].sort();
+  const labels=[],snr=[],avail=[],cav=[],speed=[],qual=[];
+  // Build per-date tooltip data
+  const dateTooltipData={};
+  dates.forEach(date=>{
+    const dr=records.filter(r=>r.date===date);
+    const dnr=DB.not_run.filter(r=>r.date===date&&(shift==='all'||r.shift===shift));
+    const ds=[...dr.map(r=>({date:r.date,shift:r.shift,machine_no:r.machine_no})),...dnr];
+    const c=compute(dr,dnr,ds);if(!c)return;
+    const p=date.split('-');
+    const lbl=`${p[2]}/${p[1]}`;
+    labels.push(lbl);
+    snr.push(+((1-c.shift_run_pct)*100).toFixed(1));
+    avail.push(+(c.avail_loss*100).toFixed(1));
+    cav.push(+(c.cav_loss*100).toFixed(1));
+    speed.push(+(c.speed_loss*100).toFixed(1));
+    qual.push(+(c.quality_loss*100).toFixed(1));
+    // Top not-run reasons for this date
+    const reasonCounts={};
+    dnr.forEach(r=>{const k=r.reason||'Unknown';reasonCounts[k]=(reasonCounts[k]||0)+1;});
+    const topReasons=Object.entries(reasonCounts).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    // Top DT categories for this date
+    const dtTotals={};
+    DT_KEYS.forEach((k,i)=>{const h=dr.reduce((s,r)=>s+(r[k]||0),0);if(h>0.01)dtTotals[DT_LABELS[i]]=h;});
+    const topDt=Object.entries(dtTotals).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    dateTooltipData[lbl]={topReasons,topDt};
+  });
+  const ctx=document.getElementById('dailyLossBar').getContext('2d');
+  charts['dailyLossBar']=new Chart(ctx,{type:'bar',
+    data:{labels,datasets:[
+      {label:'Shift not run',data:snr,backgroundColor:'#3ecf8e44',borderColor:'#3ecf8e',borderWidth:1,stack:'l'},
+      {label:'Avail (DT)',data:avail,backgroundColor:'#4f8ef755',borderColor:'#4f8ef7',borderWidth:1,stack:'l'},
+      {label:'Cavity',data:cav,backgroundColor:'#a78bfa55',borderColor:'#a78bfa',borderWidth:1,stack:'l'},
+      {label:'Speed',data:speed,backgroundColor:'#f59e0b55',borderColor:'#f59e0b',borderWidth:1,stack:'l'},
+      {label:'Quality',data:qual,backgroundColor:'#f43f5e55',borderColor:'#f43f5e',borderWidth:1,stack:'l'},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{color:cLegend(),font:{size:10},padding:6}},
+      tooltip:{mode:'index',intersect:false,callbacks:{
+        label:ctx=>`${ctx.dataset.label}: ${ctx.raw}%`,
+        afterBody:ctx=>{
+          const lbl=ctx[0].label;
+          const d=dateTooltipData[lbl];
+          if(!d)return[];
+          const lines=[];
+          if(d.topReasons.length){
+            lines.push('');
+            lines.push('Not-run reasons:');
+            d.topReasons.forEach(([r,c])=>lines.push(`  ${r.slice(0,30)}: ${c} slots`));
+          }
+          if(d.topDt.length){
+            lines.push('');
+            lines.push('Downtime causes:');
+            d.topDt.forEach(([r,h])=>lines.push(`  ${r}: ${h.toFixed(1)}h`));
+          }
+          return lines;
+        }
+      }}},
+    scales:{y:{ticks:{color:cTick(),callback:v=>v+'%',font:{size:10}},grid:{color:cGrid()}},x:{ticks:{color:cTick(),font:{size:9}},grid:{display:false}}}}});
+}
+
+function renderShiftCompare(from,to){
+  const inRange=d=>(!from||d>=from)&&(!to||d<=to);
+  const metrics=[
+    {label:'Shift run %',fn:d=>pct(d.shift_run_pct)},{label:'OEE (running)',fn:d=>pct(d.oee_running)},
+    {label:'Overall OEE',fn:d=>pct(d.overall_oee)},{label:'Target OEE',fn:d=>pct(d.tgt_overall_oee)},
+    {label:'Avail. loss',fn:d=>pct(d.avail_loss)},{label:'Cavity loss',fn:d=>pct(d.cav_loss)},
+    {label:'Speed loss',fn:d=>pct(d.speed_loss)},{label:'Quality loss',fn:d=>pct(d.quality_loss)},
+    {label:'Good output',fn:d=>num(d.total_actual)+' pcs'},{label:'Rejected',fn:d=>Math.round(d.total_rej)+' pcs'},
+  ];
+  const mk=s=>{
+    const r=DB.records.filter(x=>x.shift===s&&inRange(x.date)),n=DB.not_run.filter(x=>x.shift===s&&inRange(x.date));
+    const sl=[...r.map(x=>({date:x.date,shift:x.shift,machine_no:x.machine_no})),...n];return compute(r,n,sl);};
+  const ra=DB.records.filter(x=>inRange(x.date)),rn=DB.not_run.filter(x=>inRange(x.date));
+  const sl=[...ra.map(x=>({date:x.date,shift:x.shift,machine_no:x.machine_no})),...rn];
+  const da=mk('A'),db_=mk('B'),dc=compute(ra,rn,sl);
+  document.getElementById('shiftCompareBody').innerHTML=metrics.map(m=>`<tr>
+    <td style="color:var(--text2)">${m.label}</td>
+    <td class="mono">${da?m.fn(da):'—'}</td><td class="mono">${db_?m.fn(db_):'—'}</td>
+    <td class="mono" style="color:var(--accent)">${dc?m.fn(dc):'—'}</td>
+  </tr>`).join('');
+}
+
+function renderNotRunLog(not_run){
+  document.getElementById('notRunLog').innerHTML=not_run.map(r=>{
+    const cat=categoriseNotRun(r.reason);
+    return`<tr>
+      <td class="mono">${r.date}</td><td>${r.shift}</td><td class="mono">M${r.machine_no}</td>
+      <td><span style="font-size:9px;padding:1px 6px;border-radius:3px;background:${CAT_COLOR[cat]}22;color:${CAT_COLOR[cat]}">${CAT_LABEL[cat]}</span></td>
+      <td style="color:${r.reason&&r.reason.includes('Missing')?'var(--text3)':'var(--text2)'}">${r.reason||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderDtStats(records,total_shift_hrs){
+  const total_dt=DT_KEYS.reduce((s,k)=>s+records.reduce((a,r)=>a+(r[k]||0),0),0);
+  let maxHrs=0,maxLabel='—';
+  DT_KEYS.forEach((k,i)=>{const h=records.reduce((s,r)=>s+(r[k]||0),0);if(h>maxHrs){maxHrs=h;maxLabel=DT_LABELS[i];}});
+  document.getElementById('dtStats').innerHTML=`
+    <div style="background:var(--bg3);border-radius:6px;padding:10px">
+      <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Total downtime</div>
+      <div style="font-family:var(--mono);font-size:18px;color:var(--amber)">${total_dt.toFixed(1)} hrs</div>
+      <div style="font-size:10px;color:var(--text2)">${pct(total_shift_hrs?total_dt/total_shift_hrs:0)} of shift hrs</div>
+    </div>
+    <div style="background:var(--bg3);border-radius:6px;padding:10px">
+      <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Biggest cause</div>
+      <div style="font-family:var(--mono);font-size:18px;color:var(--red)">${maxHrs.toFixed(1)} hrs</div>
+      <div style="font-size:10px;color:var(--text2)">${maxLabel}</div>
+    </div>`;
+}
+
+function renderMachineTable(records){
+  document.getElementById('machineTableBody').innerHTML=records.map(r=>{
+    const dt=DT_KEYS.reduce((s,k)=>s+(r[k]||0),0);
+    const al=r.duration_hrs?(r.duration_hrs-r.run_hrs)/r.duration_hrs:0;
+    const cl=r.total_cavities?(r.total_cavities-r.running_cavities)/r.total_cavities:0;
+    const ql=(r.total_rej_pcs+r.actual_good_pcs)>0?r.total_rej_pcs/(r.total_rej_pcs+r.actual_good_pcs):0;
+    const or_=r.target_pcs?r.actual_good_pcs/r.target_pcs:0;
+    const avr=1-al,cvr=1-cl,qlr=1-ql,denom=avr*cvr*qlr;
+    const sl=denom>0?Math.max(0,1-or_/denom):0;
+    return`<tr>
+      <td class="mono">${r.date}</td><td class="mono"><b>M${r.machine_no}</b></td><td>${r.shift}</td>
+      <td style="font-size:10px">${r.operator_name||'—'}</td>
+      <td style="font-size:10px;max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.product_name}</td>
+      <td><span class="pill pill-gray">${r.product_type}</span></td>
+      <td class="mono">${num(r.target_pcs)}</td><td class="mono">${num(r.actual_good_pcs)}</td>
+      <td class="mono">${Math.round(r.total_rej_pcs)}</td>
+      <td>${pill(or_)}</td><td class="mono">${pct(al)}</td><td class="mono">${pct(cl)}</td>
+      <td class="mono">${pct(sl)}</td><td class="mono">${pct(ql)}</td>
+      <td class="mono">${dt.toFixed(1)}</td><td class="mono">${r.run_hrs.toFixed(1)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+// MAIN RENDER
+// ═══════════════════════════════════════════════
+function applyFilters(){
+  const{records,not_run,all_slots}=getFiltered();
+  const d=compute(records,not_run,all_slots);
+  if(!d)return;
+  const from=document.getElementById('fDateFrom').value,to=document.getElementById('fDateTo').value;
+  const activeDates=[...new Set(records.map(r=>r.date).filter(x=>x>=from&&x<=to))];
+  const nDays=activeDates.length;
+  document.getElementById('headerRange').textContent=from===to?`${from} · 1 day`:`${from}  →  ${to}  ·  ${nDays} days`;
+
+  // KPIs
+  document.getElementById('k-shift').textContent=pct(d.shift_run_pct);
+  document.getElementById('k-shift-sub').textContent=`${d.ran_cnt} of ${d.total_slots} machine-slots ran`;
+  document.getElementById('k-run').textContent=pct(d.oee_running);
+  document.getElementById('k-run-target').textContent=`Target: ${pct(d.tgt_oee_running)} *`;
+  document.getElementById('k-run-good').textContent=`${num(d.total_actual)} good · ${num(d.total_target)} target`;
+  document.getElementById('k-oee').textContent=pct(d.overall_oee);
+
+  // Plant
+  renderWaterfall('wfPlant',d);
+  renderGroupedBars('notRunBarsPlant',buildNotRunEntries(d.reason_pcts,not_run),150);
+  renderGroupedBars('dtBarsPlant',buildDtEntries(d.dt_breakdown,records),150);
+  renderNotRunLog(not_run);
+  renderDtStats(records,d.total_shift_hrs);
+  renderMachineBar(records,not_run);
+  renderTrendLine();
+
+  // Machine
+  renderLossComposition(records);
+  renderDailyLoss(records,not_run);
+  renderShiftCompare(from,to);
+  renderMachineTable(records);
+}
+
+function switchView(view,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.view-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view-'+view).classList.add('active');
+  btn.classList.add('active');
+  // On readme: hide filter rows but keep view-tab row visible
+  const rows=document.querySelectorAll('.controls-row');
+  rows.forEach((r,i)=>{if(i>0) r.style.display=(view==='readme')?'none':'flex';});
+}
+
+function cascadeFilters(){
+  const ty=document.getElementById('fType').value;
+  const pSel=document.getElementById('fProduct');
+  const cur=pSel.value;
+  const all=[...new Set(DB.records.map(r=>r.product_name))].sort();
+  const filtered=ty==='all'?all:[...new Set(DB.records.filter(r=>r.product_type===ty).map(r=>r.product_name))].sort();
+  pSel.innerHTML='<option value="all">All products</option>';
+  filtered.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;pSel.appendChild(o);});
+  pSel.value=filtered.includes(cur)?cur:'all';
+  applyFilters();
+}
+
+// ═══════════════════════════════════════════════
+// README CONTENT
+// ═══════════════════════════════════════════════
+const README_HTML = `
+<h2>👋 Welcome — What Is This Dashboard?</h2>
+<p><span class="rm-editable" contenteditable="true">This dashboard shows how well our machines are running each shift at HomeMade. It is updated from the daily production data file that your supervisor loads. You do not need to do anything to make the numbers appear — just read them and understand what they mean.</span></p>
+<p><span class="rm-editable" contenteditable="true">If something looks wrong or a number seems off, please flag it to your shift supervisor rather than changing anything yourself.</span></p>
+
+<h2>📐 The Three Key Numbers</h2>
+
+<h3><span style="color:var(--wf-shift)">■</span> Shift Run %</h3>
+<p><span class="rm-editable" contenteditable="true">This tells you: of all the machine-shifts that were <em>supposed</em> to run today, how many actually did? If you have 5 machines running 2 shifts each, that is 10 possible slots. If only 8 ran, your Shift Run % is 80%.</span></p>
+<div class="rm-formula">Shift Run % = Machines that ran ÷ Total scheduled machine-shifts</div>
+<p><span class="rm-editable" contenteditable="true">A slot counts as "not run" if the machine was scheduled but produced nothing — whether due to a planned changeover, a breakdown, or missing paperwork.</span></p>
+
+<h3><span style="color:var(--amber)">■</span> OEE — Running Machines</h3>
+<p><span class="rm-editable" contenteditable="true">This measures how efficiently the machines that <em>did</em> run were performing. It combines four things: whether the machine was actually running during its shift, how many cavities were active, how fast it ran versus target, and how much of what it made was good product.</span></p>
+<div class="rm-formula">OEE (running) = Actual Good Pieces ÷ Target Pieces
+             (calculated per machine, then averaged by hours run)</div>
+<p><span class="rm-editable" contenteditable="true">A high OEE means the machine ran well when it was scheduled. A low OEE means time, capacity, or quality was being lost somewhere.</span></p>
+
+<h3><span style="color:var(--accent)">■</span> Overall OEE</h3>
+<p><span class="rm-editable" contenteditable="true">This is our main performance number. It combines both whether machines ran <em>and</em> how well they ran when they did. A machine that runs perfectly but sits idle half the time still hurts our Overall OEE.</span></p>
+<div class="rm-formula">Overall OEE = OEE (running machines) × Shift Run %</div>
+
+<h2>🔬 The Loss Waterfall — Where Does Output Go?</h2>
+<p><span class="rm-editable" contenteditable="true">The waterfall chart starts at 100% (perfect theoretical output) and shows step-by-step where losses are eating into that number. The white dashed line on each bar is our target — where we want to get to. The further the bar falls short of 100%, the more opportunity there is to improve.</span></p>
+
+<div class="rm-grid">
+  <div class="rm-cell">
+    <div class="rm-cell-label">Availability Loss</div>
+    <div class="rm-cell-val">Time the machine was stopped during a shift</div>
+    <div class="rm-cell-note"><span class="rm-editable" contenteditable="true">Examples: waiting for material, a machine breakdown mid-shift, a mould change taking longer than planned.</span></div>
+  </div>
+  <div class="rm-cell">
+    <div class="rm-cell-label">Cavity Loss</div>
+    <div class="rm-cell-val">Moulds running with fewer than full cavities</div>
+    <div class="rm-cell-note"><span class="rm-editable" contenteditable="true">If a mould has 8 cavities but 2 are blocked or damaged, we are making less than we could even while the machine runs.</span></div>
+  </div>
+  <div class="rm-cell">
+    <div class="rm-cell-label">Speed Loss</div>
+    <div class="rm-cell-val">Running slower than the target cycle time</div>
+    <div class="rm-cell-note"><span class="rm-editable" contenteditable="true">This is the leftover gap after accounting for downtime, cavity issues, and rejects. It captures everything that slows the machine without stopping it completely.</span></div>
+  </div>
+  <div class="rm-cell">
+    <div class="rm-cell-label">Quality Loss</div>
+    <div class="rm-cell-val">Pieces made but rejected at QC</div>
+    <div class="rm-cell-note"><span class="rm-editable" contenteditable="true">Every rejected piece wastes machine time, material, and labour. Keeping this low is everyone's responsibility.</span></div>
+  </div>
+</div>
+<div class="rm-warn">⚠ Speed loss is calculated as a "leftover" — it picks up anything not captured by the other three categories. If it looks unexpectedly high, check whether downtime or cavity data was recorded correctly.</div>
+
+<h2>⏱ Downtime — Planned vs Unplanned</h2>
+<p><span class="rm-editable" contenteditable="true">Not all downtime is bad. Planned downtime is expected and scheduled — we know about it ahead of time. Unplanned downtime is the kind we want to reduce because it means something went wrong unexpectedly.</span></p>
+<div class="rm-dt-row"><span class="rm-dt-dot" style="background:var(--planned)"></span><span class="rm-dt-name">Label change</span><span class="rm-tag planned">Planned</span><span class="rm-dt-cat" style="margin-left:8px">Switching to a different label — scheduled in advance</span></div>
+<div class="rm-dt-row"><span class="rm-dt-dot" style="background:var(--planned)"></span><span class="rm-dt-name">Colour change</span><span class="rm-tag planned">Planned</span><span class="rm-dt-cat" style="margin-left:8px">Changing material colour — purging time included</span></div>
+<div class="rm-dt-row"><span class="rm-dt-dot" style="background:var(--planned)"></span><span class="rm-dt-name">Mould change</span><span class="rm-tag planned">Planned</span><span class="rm-dt-cat" style="margin-left:8px">Swapping to a different mould for a new product</span></div>
+<div class="rm-dt-row"><span class="rm-dt-dot" style="background:var(--unplanned)"></span><span class="rm-dt-name">Label unavailable</span><span class="rm-tag unplanned">Unplanned</span><span class="rm-dt-cat" style="margin-left:8px">Stopped because labels did not arrive on time</span></div>
+<div class="rm-dt-row"><span class="rm-dt-dot" style="background:var(--unplanned)"></span><span class="rm-dt-name">Process failure</span><span class="rm-tag unplanned">Unplanned</span><span class="rm-dt-cat" style="margin-left:8px">Machine running but producing bad output — had to stop to fix</span></div>
+<div class="rm-dt-row"><span class="rm-dt-dot" style="background:var(--unplanned)"></span><span class="rm-dt-name">Machine breakdown</span><span class="rm-tag unplanned">Unplanned</span><span class="rm-dt-cat" style="margin-left:8px">Mechanical or electrical fault — waiting for maintenance</span></div>
+<div class="rm-dt-row"><span class="rm-dt-dot" style="background:var(--unplanned)"></span><span class="rm-dt-name">Mould breakdown</span><span class="rm-tag unplanned">Unplanned</span><span class="rm-dt-cat" style="margin-left:8px">Mould cracked, stuck, or damaged mid-run</span></div>
+<div class="rm-dt-row"><span class="rm-dt-dot" style="background:var(--other)"></span><span class="rm-dt-name">Other</span><span class="rm-tag other">Other</span><span class="rm-dt-cat" style="margin-left:8px">Reason not yet categorised — ask your supervisor to log it properly</span></div>
+
+<h2>🚫 Not-Run Reason Codes</h2>
+<p><span class="rm-editable" contenteditable="true">When a machine-shift does not run at all, the shift tracker records a reason code. These codes tell us <em>why</em> the slot was empty. Please make sure you record the right code — missing or wrong reason codes show up as "Other" and make the data harder to act on.</span></p>
+<div class="rm-dt-row"><span class="rm-tag planned">Planned</span><span style="font-size:11px;color:var(--text2);margin-left:8px">Codes 1–4 — scheduled maintenance, approved changeovers, pre-planned downtime</span></div>
+<div class="rm-dt-row" style="margin-top:4px"><span class="rm-tag unplanned">Unplanned</span><span style="font-size:11px;color:var(--text2);margin-left:8px">Codes 5–9 — unexpected breakdowns, material shortages, staffing issues</span></div>
+<div class="rm-dt-row" style="margin-top:4px"><span class="rm-tag other">Other</span><span style="font-size:11px;color:var(--text2);margin-left:8px">No code or unrecognised — please complete the shift log</span></div>
+
+<h2>🎯 What Are the Target Lines?</h2>
+<p><span class="rm-editable" contenteditable="true">The white dashed lines on the waterfall chart show what our OEE <em>could</em> look like if we made realistic improvements. These are not wishful targets — they are based on halving unplanned downtime, halving unplanned idle shifts, and significantly reducing cavity loss. Quality targets are kept the same as today.</span></p>
+<div class="rm-formula">Unplanned downtime   → cut by half
+Unplanned idle shifts → cut by half
+Cavity loss           → cut by 80%
+Speed loss            → cut by half
+Quality               → held at current level</div>
+
+<h2>❓ Common Questions</h2>
+<h3>Why is my machine showing low OEE even though it ran all shift?</h3>
+<p><span class="rm-editable" contenteditable="true">Running all shift is only part of the picture. If cavities were blocked, the machine ran slower than target, or there were many rejects, OEE will still be low. Check each loss category in the waterfall to see which one is biggest for your machine.</span></p>
+<h3>What should I do if I see an error in the data?</h3>
+<p><span class="rm-editable" contenteditable="true">Do not ignore it. Tell your shift supervisor so the source data can be corrected before the next report. Data quality matters — decisions about where to focus maintenance and improvement are based on these numbers.</span></p>
+<h3>How often is this updated?</h3>
+<p><span class="rm-editable" contenteditable="true">The dashboard is updated when your supervisor loads a new data file. If you are not seeing recent data, ask them to reload with the latest export.</span></p>
+
+<p style="margin-top:22px;font-size:10px;color:var(--text3)">v7.2 · HomeMade Plant OEE Dashboard</p>
+`;
+
+
+// ═══════════════════════════════════════════════
+// README SAVE — bakes edits into a new HTML download
+// ═══════════════════════════════════════════════
+function saveReadme(){
+  const editedContent = document.getElementById('readmeContent').innerHTML;
+  // Get the full source HTML of the page
+  let html = document.documentElement.outerHTML;
+  if(!html.startsWith('<!DOCTYPE')) html = '<!DOCTYPE html>\n' + html;
+  // Inject an override script just before </body> that replaces readmeContent
+  // after the page loads — this way the saved file preserves edits on re-open
+  const overrideScript = `<script>
+(function(){
+  const _orig = initDropZone;
+  const _savedReadme = ${JSON.stringify(editedContent)};
+  const _patchReadme = function(){
+    const el = document.getElementById('readmeContent');
+    if(el) el.innerHTML = _savedReadme;
+    const il = document.getElementById('dropReadmeInline');
+    if(il) il.innerHTML = '<div class="readme-body card" style="padding:20px">'+_savedReadme+'</div>';
+  };
+  window.addEventListener('DOMContentLoaded', _patchReadme, {once:true});
+  // also patch after initDropZone runs
+  const _origInit = window.initDropZone;
+  window.initDropZone = function(){
+    if(_origInit) _origInit.apply(this, arguments);
+    _patchReadme();
+  };
+})();
+<\/script>`;
+  html = html.replace('</body>', overrideScript + '\n</body>');
+  const blob = new Blob([html], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'oee_dashboard.html';
+  a.click();
+  URL.revokeObjectURL(url);
+  // Flash save confirmation
+  const ok = document.getElementById('saveOkMsg');
+  ok.style.opacity='1';
+  setTimeout(()=>ok.style.opacity='0', 2200);
+}
+
+// Ctrl+S to save when README is visible
+document.addEventListener('keydown', e=>{
+  if((e.ctrlKey||e.metaKey) && e.key==='s'){
+    const readmeSection = document.getElementById('view-readme');
+    if(readmeSection && readmeSection.classList.contains('active')){
+      e.preventDefault();
+      saveReadme();
+    }
+  }
+});
+
+
+function initDropZone(){
+  // Inject README into drop-screen inline panel
+  document.getElementById('dropReadmeInline').innerHTML = '<div class="readme-body card" style="padding:20px">'+README_HTML+'</div>';
+  // Inject into main README tab (pre-populated, always available)
+  document.getElementById('readmeContent').innerHTML = README_HTML;
+
+  const zone = document.getElementById('dropZone');
+  const box  = document.getElementById('dropBox');
+  const errEl= document.getElementById('dropErr');
+  const inp  = document.getElementById('fileInput');
+
+  function handleFile(file){
+    if(!file){return;}
+    if(!file.name.endsWith('.json')&&file.type!=='application/json'){
+      errEl.textContent='Please select a .json file.'; return;
+    }
+    errEl.textContent='';
+    const reader=new FileReader();
+    reader.onload=e=>{
+      try{
+        DB=JSON.parse(e.target.result);
+        if(!DB.records||!Array.isArray(DB.records))throw new Error('Missing "records" array');
+        zone.style.display='none';
+        document.getElementById('app').style.display='block';
+        initDashboard();
+      }catch(err){
+        errEl.textContent='Invalid JSON: '+err.message;
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  // File input
+  inp.addEventListener('change',()=>handleFile(inp.files[0]));
+
+  // Drag events on document (not just the box)
+  document.addEventListener('dragover',e=>{e.preventDefault();box.classList.add('hover');zone.classList.add('drag-over');});
+  document.addEventListener('dragleave',e=>{if(!e.relatedTarget||e.relatedTarget===document.body){box.classList.remove('hover');zone.classList.remove('drag-over');}});
+  document.addEventListener('drop',e=>{
+    e.preventDefault();
+    box.classList.remove('hover');zone.classList.remove('drag-over');
+    // Only handle drop if drop zone is visible
+    if(zone.style.display==='none') return;
+    handleFile(e.dataTransfer.files[0]);
+  });
+
+  // Load current data from server
+  window.loadServerData = function(){
+
+  try {
+    const btn = document.getElementById('loadServerBtn');
+    const errEl = document.getElementById('dropErr');
+    const zone = document.getElementById('dropZone');
+
+    if (btn) {
+      btn.textContent = 'Loading…';
+      btn.disabled = true;
+    }
+    if (errEl) errEl.textContent = '';
+
+    fetch('output/oee_data.json')
+      .then(r=>{
+        if(!r.ok) throw new Error('Server returned '+r.status);
+        return r.json();
+      })
+      .then(data=>{
+        console.log("JSON loaded ✅", data);
+
+        DB = data;
+
+        if (zone) zone.style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+
+        // 🔥 TRY BOTH (jo exist kare wo chale)
+        if (typeof init === "function") {
+          init();
+        } else if (typeof initDashboard === "function") {
+          initDashboard();
+        } else {
+          console.error("❌ init function not found");
+        }
+      })
+      .catch(err=>{
+        console.error("❌ FETCH ERROR:", err);
+        if (errEl) errEl.textContent = 'Error: '+err.message;
+      });
+
+  } catch (e) {
+    console.error("❌ CRASH:", e);
+  }
+};
+}
+
+function setDropTab(tab, btn){
+  document.querySelectorAll('#dropZone .view-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const box=document.getElementById('dropBox');
+  const readme=document.getElementById('dropReadmeInline');
+  const hint=document.querySelector('#dropZone .drop-hint');
+  if(tab==='readme'){
+    box.style.display='none';
+    hint.style.display='none';
+    readme.style.display='block';
+  } else {
+    box.style.display='flex';
+    hint.style.display='block';
+    readme.style.display='none';
+  }
+}
+
+// ═══════════════════════════════════════════════
+// THEME TOGGLE
+// ═══════════════════════════════════════════════
+function toggleTheme(){
+  const isLight=document.documentElement.classList.toggle('light');
+  document.getElementById('themeBtn').textContent=isLight?'🌙':'☀︎';
+  updateChartDefaults();
+  if(DB) applyFilters();
+}
+function updateChartDefaults(){
+  const isLight=document.documentElement.classList.contains('light');
+  Chart.defaults.color=isLight?'#4a5068':'#555d78';
+  Chart.defaults.borderColor=isLight?'rgba(0,0,0,0.06)':'rgba(255,255,255,0.05)';
+}
+
+
+function initDashboard(){
+  const dates=[...new Set(DB.records.map(r=>r.date))].sort();
+  document.getElementById('fDateFrom').value=dates[0];
+  document.getElementById('fDateTo').value=dates[dates.length-1];
+
+  const machines=[...new Set(DB.records.map(r=>r.machine_no))].sort((a,b)=>a-b);
+  const mSel=document.getElementById('fMachine');
+  machines.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=`Machine ${m}`;mSel.appendChild(o);});
+
+  const products=[...new Set(DB.records.map(r=>r.product_name))].sort();
+  const pSel=document.getElementById('fProduct');
+  products.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;pSel.appendChild(o);});
+
+  // Operator dropdown — only show if any record has operator_name
+  const operators=[...new Set(DB.records.map(r=>r.operator_name).filter(Boolean))].sort();
+  const oSel=document.getElementById('fOperator');
+  if(operators.length){
+    operators.forEach(op=>{const o=document.createElement('option');o.value=op;o.textContent=op;oSel.appendChild(o);});
+  } else {
+    oSel.parentElement.style.display='none'; // hide Operator filter if no data
+    oSel.previousElementSibling.style.display='none';
+  }
+
+  updateChartDefaults();
+  applyFilters();
+}
+
+initDropZone();
+//window.onload = loadServerData;
+window.onload = function () {
+    console.log("Page loaded → calling loadServerData()");
+    loadServerData();
+};
+setInterval(() => {
+  console.log("Refreshing data...");
+  fetch('output/oee_data.json')
+    .then(r => r.json())
+    .then(data => {
+      DB = data;
+      initDashboard();
+    })
+    .catch(err => console.error("Refresh error:", err));
+}, 30000); // 30 sec
+setInterval(() => {
+  location.reload();
+}, 60000); // 1 min
+</script>
+</body>
+</html>
