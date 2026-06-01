@@ -2779,7 +2779,21 @@ function initDashboard(){
 }
 
 initDropZone();
+window.onload = function () {
+    console.log("Page loaded → calling loadServerData()");
+    loadServerData();
+};
 
+setInterval(() => {
+  console.log("Refreshing data...");
+  fetch('output/oee_data.json')
+    .then(r => r.json())
+    .then(data => {
+      DB = data;
+      initDashboard();
+    })
+    .catch(err => console.error("Refresh error:", err));
+}, 30000); // 30 sec
 
 </script>
 </body>
