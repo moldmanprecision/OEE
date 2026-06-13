@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IML Plant OEE — v7.2</title>
+<title>IML Plant OEE — v7.3</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -275,7 +275,7 @@ html.light .rm-editable:focus{background:rgba(79,142,247,0.08);}
 <div id="dropZone">
   <div class="drop-box" id="dropBox">
     <div class="drop-icon">📂</div>
-    <div class="drop-title">IML Plant OEE — v7.2</div>
+    <div class="drop-title">IML Plant OEE — v7.3</div>
     <div class="drop-sub">Load the latest data from the server, or drop your own <strong>oee_data.json</strong> file.</div>
     <button class="drop-btn drop-btn-primary" id="loadServerBtn" onclick="loadServerData()">⬇ Load current data</button>
     <div class="drop-or">or</div>
@@ -562,6 +562,51 @@ html.light .rm-editable:focus{background:rgba(79,142,247,0.08);}
 
 <script>
 let DB=null;
+
+window.loadServerData = function(){
+
+  try {
+    const btn = document.getElementById('loadServerBtn');
+    const errEl = document.getElementById('dropErr');
+    const zone = document.getElementById('dropZone');
+
+    if (btn) {
+      btn.textContent = 'Loading…';
+      btn.disabled = true;
+    }
+    if (errEl) errEl.textContent = '';
+
+    fetch('output/oee_data.json')
+      .then(r=>{
+        if(!r.ok) throw new Error('Server returned '+r.status);
+        return r.json();
+      })
+      .then(data=>{
+        console.log("JSON loaded ✅", data);
+
+        DB = data;
+
+        if (zone) zone.style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+
+        // 🔥 TRY BOTH (jo exist kare wo chale)
+        if (typeof init === "function") {
+          init();
+        } else if (typeof initDashboard === "function") {
+          initDashboard();
+        } else {
+          console.error("❌ init function not found");
+        }
+      })
+      .catch(err=>{
+        console.error("❌ FETCH ERROR:", err);
+        if (errEl) errEl.textContent = 'Error: '+err.message;
+      });
+
+  } catch (e) {
+    console.error("❌ CRASH:", e);
+  }
+};
 const charts={};
 const chartData={};
 function setChartData(id,obj){chartData[id]=obj;}
@@ -2483,7 +2528,7 @@ function cascadeFilters(){
 // ═══════════════════════════════════════════════
 const README_HTML = `
 <h2>👋 Welcome — What Is This Dashboard?</h2>
-<p><span class="rm-editable" contenteditable="true">This dashboard shows how well our machines are running each shift at HomeMade. It is updated from the daily production data file that your supervisor loads. You do not need to do anything to make the numbers appear — just read them and understand what they mean.</span></p>
+<p><span class="rm-editable" contenteditable="true">This dashboard shows how well our machines are running each shift at Moldman. It is updated from the daily production data file that your supervisor loads. You do not need to do anything to make the numbers appear — just read them and understand what they mean.</span></p>
 <p><span class="rm-editable" contenteditable="true">If something looks wrong or a number seems off, please flag it to your shift supervisor rather than changing anything yourself.</span></p>
 
 <h2>📐 The Three Key Numbers</h2>
@@ -2566,7 +2611,7 @@ Quality               → held at current level</div>
 <h3>How often is this updated?</h3>
 <p><span class="rm-editable" contenteditable="true">The dashboard is updated when your supervisor loads a new data file. If you are not seeing recent data, ask them to reload with the latest export.</span></p>
 
-<p style="margin-top:22px;font-size:10px;color:var(--text3)">v7.2 · HomeMade Plant OEE Dashboard</p>
+<p style="margin-top:22px;font-size:10px;color:var(--text3)">v7.3 · MoldMan Plant OEE Dashboard</p>
 `;
 
 
@@ -2604,7 +2649,7 @@ function saveReadme(){
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'oee_dashboard_v7.2.html';
+  a.download = 'oee_dashboard_v7.3.html';
   a.click();
   URL.revokeObjectURL(url);
   // Flash save confirmation
@@ -2671,7 +2716,7 @@ function initDropZone(){
     handleFile(e.dataTransfer.files[0]);
   });
 
- // Load current data from server
+  // Load current data from server
   window.loadServerData = function(){
 
   try {
@@ -2717,7 +2762,6 @@ function initDropZone(){
   }
 };
 }
-
 
 function setDropTab(tab, btn){
   document.querySelectorAll('#dropZone .view-tab').forEach(b=>b.classList.remove('active'));
@@ -2780,25 +2824,10 @@ function initDashboard(){
 }
 
 initDropZone();
-//window.onload = loadServerData;
 window.onload = function () {
     console.log("Page loaded → calling loadServerData()");
     loadServerData();
 };
-setInterval(() => {
-  console.log("Refreshing data...");
-  fetch('output/oee_data.json')
-    .then(r => r.json())
-    .then(data => {
-      DB = data;
-      initDashboard();
-    })
-    .catch(err => console.error("Refresh error:", err));
-}, 30000); // 30 sec
-setInterval(() => {
-  location.reload();
-}, 60000); // 1 min
-
 </script>
 </body>
 </html>
