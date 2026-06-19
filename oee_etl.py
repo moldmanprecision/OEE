@@ -24,6 +24,7 @@ To specify a different folder:
 To write the JSON somewhere else:
     py oee_etl.py --output "D:\WORKING\OEE\\output\\oee_data.json"
 
+
 FILE NAMING
 -----------
 Each Excel file must contain the date somewhere in its name as DD_MM_YYYY.
@@ -87,35 +88,50 @@ log = logging.getLogger("oee_etl")
 #   OLD layout (col I = Product type):   no Operator name column
 #   NEW layout (col I = Operator name):  inserted at col 9, all others +1
 #
-# Detection: if cell (row=10, col=9) contains "Operator", use NEW layout.
+# Three template layouts exist:
+#   OLDEST — no Operator column, OEE% at col AP (42), 8 DT categories
+#   OLD    — Operator at col I (9),  OEE% at col AQ (43), 8 DT categories
+#   NEW    — Operator at col I (9),  OEE% at col AT (46), 11 DT categories
+#
+# Detection order:
+#   1. Col AT (46) non-empty at row 10 → NEW
+#   2. Col I  (9)  header contains "Operator" → OLD
+#   3. Otherwise → OLDEST
 
-OEE_COL_OLD = {
+OEE_COL_OLDEST = {
     "date":             2,   # B
     "shift":            3,   # C
     "duration_hrs":     6,   # F
     "machine_no":       7,   # G
     "to_fill":          8,   # H
-    "product_type":     9,   # I
+    # No operator_name column in this template
+    "product_type":     9,   # I  (where Operator is in OLD/NEW)
     "product_name":     10,  # J
     "mould_no":         11,  # K
+    # L (12): No. of SKUs manufactured — skip
     "weight_gm":        13,  # M
     "rated_cycle_sec":  14,  # N
     "total_cavities":   15,  # O
     "target_pcs":       16,  # P
     "actual_good_pcs":  17,  # Q
+    # R (18): SKU level production breakdown — skip
     "rej_label_kg":     19,  # S
     "rej_plain_kg":     20,  # T
     "rej_trial_kg":     21,  # U
     "total_rej_pcs":    22,  # V
+    # W (23): Total std material weight — skip
+    # X (24): % target achievement (pre-computed) — skip
+    # Y (25): Quality loss % (pre-computed) — skip
     "run_hrs":          26,  # Z
     "dt_label":         27,  # AA
     "dt_colour":        28,  # AB
     "dt_mould":         29,  # AC
     "dt_label_unavail": 30,  # AD
     "dt_proc_fail":     31,  # AE
-    "dt_mach_bkdn":     32,  # AF
+    "dt_mach_bkdn":     32,  # AF  (combined machine+robot in this template)
     "dt_mould_bkdn":    33,  # AG
     "dt_other":         34,  # AH
+    # AI (35): Comments — skip
     "avail_loss_pct":   36,  # AJ
     "running_cavities": 37,  # AK
     "perf_cav_loss":    38,  # AL
@@ -125,13 +141,13 @@ OEE_COL_OLD = {
     "oee_pct":          42,  # AP
 }
 
-OEE_COL_NEW = {
+OEE_COL_OLD = {
     "date":             2,   # B
     "shift":            3,   # C
     "duration_hrs":     6,   # F
     "machine_no":       7,   # G
     "to_fill":          8,   # H
-    "operator_name":    9,   # I  ← new column
+    "operator_name":    9,   # I
     "product_type":     10,  # J
     "product_name":     11,  # K
     "mould_no":         12,  # L
@@ -140,19 +156,22 @@ OEE_COL_NEW = {
     "total_cavities":   16,  # P
     "target_pcs":       17,  # Q
     "actual_good_pcs":  18,  # R
+    # col 19 (S) = SKU-level production breakdown — not needed in ETL
     "rej_label_kg":     20,  # T
     "rej_plain_kg":     21,  # U
     "rej_trial_kg":     22,  # V
     "total_rej_pcs":    23,  # W
+    # cols 24-26 (X-Z) = material weight, % target, quality % — not needed
     "run_hrs":          27,  # AA
     "dt_label":         28,  # AB
     "dt_colour":        29,  # AC
     "dt_mould":         30,  # AD
     "dt_label_unavail": 31,  # AE
     "dt_proc_fail":     32,  # AF
-    "dt_mach_bkdn":     33,  # AG
+    "dt_mach_bkdn":     33,  # AG  (combined machine+robot in OLD template)
     "dt_mould_bkdn":    34,  # AH
     "dt_other":         35,  # AI
+    # col 36 (AJ): Comments for other reasons — skip
     "avail_loss_pct":   37,  # AK
     "running_cavities": 38,  # AL
     "perf_cav_loss":    39,  # AM
@@ -162,29 +181,146 @@ OEE_COL_NEW = {
     "oee_pct":          43,  # AQ
 }
 
+OEE_COL_NEW = {
+    "date":             2,   # B
+    "shift":            3,   # C
+    "duration_hrs":     6,   # F
+    "machine_no":       7,   # G
+    "to_fill":          8,   # H
+    "operator_name":    9,   # I
+    "product_type":     10,  # J
+    "product_name":     11,  # K
+    "mould_no":         12,  # L
+    "weight_gm":        14,  # N
+    "rated_cycle_sec":  15,  # O
+    "total_cavities":   16,  # P
+    "target_pcs":       17,  # Q
+    "actual_good_pcs":  18,  # R
+    # col 19 (S) = SKU-level production breakdown — not needed in ETL
+    "rej_label_kg":     20,  # T
+    "rej_plain_kg":     21,  # U
+    "rej_trial_kg":     22,  # V
+    "total_rej_pcs":    23,  # W
+    # cols 24-26 (X-Z) = material weight, % target, quality % — not needed
+    "run_hrs":          27,  # AA
+    "dt_label":         28,  # AB
+    "dt_colour":        29,  # AC
+    "dt_mould":         30,  # AD
+    "dt_label_unavail": 31,  # AE
+    "dt_proc_fail":     32,  # AF
+    "dt_mach_bkdn":     33,  # AG  ← machine breakdown (split from combined OLD)
+    "dt_mould_bkdn":    34,  # AH
+    "dt_robot_bkdn":    35,  # AI  ← robot breakdown (split from combined OLD)
+    "dt_manpower":      36,  # AJ  ← manpower unavailability
+    "dt_power_cut":     37,  # AK  ← power cut
+    "dt_other":         38,  # AL
+    # col 39 (AM): Comments for other reasons — skip
+    "avail_loss_pct":   40,  # AN
+    "running_cavities": 41,  # AO
+    "perf_cav_loss":    42,  # AP
+    "actual_cycle_sec": 43,  # AQ
+    "perf_spd_loss":    44,  # AR
+    "overall_perf_loss":45,  # AS
+    "oee_pct":          46,  # AT
+}
+
+# v3 template: 3 extra DT columns added (startup/setup, RM-PM unavail, label peel-off)
+# All post-DT columns shift right by 3; OEE% moves from AT(46) → AW(49)
+OEE_COL_NEWEST = {
+    "date":             2,   # B
+    "shift":            3,   # C
+    "duration_hrs":     6,   # F
+    "machine_no":       7,   # G
+    "to_fill":          8,   # H
+    "operator_name":    9,   # I
+    "product_type":     10,  # J
+    "product_name":     11,  # K
+    "mould_no":         12,  # L
+    "weight_gm":        14,  # N
+    "rated_cycle_sec":  15,  # O
+    "total_cavities":   16,  # P
+    "target_pcs":       17,  # Q
+    "actual_good_pcs":  18,  # R
+    # col 19 (S) = SKU-level breakdown — skip
+    "rej_label_kg":     20,  # T
+    "rej_plain_kg":     21,  # U
+    "rej_trial_kg":     22,  # V
+    "total_rej_pcs":    23,  # W
+    # cols 24-26 (X-Z) = material weight, % target, quality % — skip
+    "run_hrs":          27,  # AA
+    "dt_label":         28,  # AB
+    "dt_colour":        29,  # AC
+    "dt_mould":         30,  # AD
+    "dt_startup":       31,  # AE  ← NEW: machine startup / setup
+    "dt_label_unavail": 32,  # AF
+    "dt_rm_pm_unavail": 33,  # AG  ← NEW: other RM/PM unavailability
+    "dt_peel_off":      34,  # AH  ← NEW: label peel-off
+    "dt_proc_fail":     35,  # AI
+    "dt_mach_bkdn":     36,  # AJ
+    "dt_mould_bkdn":    37,  # AK
+    "dt_robot_bkdn":    38,  # AL
+    "dt_manpower":      39,  # AM
+    "dt_power_cut":     40,  # AN
+    "dt_other":         41,  # AO
+    # col 42 (AP): Comments — skip
+    "avail_loss_pct":   43,  # AQ
+    "running_cavities": 44,  # AR
+    "perf_cav_loss":    45,  # AS
+    "actual_cycle_sec": 46,  # AT
+    "perf_spd_loss":    47,  # AU
+    "overall_perf_loss":48,  # AV
+    "oee_pct":          49,  # AW
+}
+
 def detect_oee_col(ws) -> dict:
-    """Return the correct column map by inspecting row 10, column I (col 9)."""
-    header_i = ws.cell(row=10, column=9).value
-    if header_i and "operator" in str(header_i).lower():
-        log.info("  Detected NEW column layout (Operator name at col I)")
+    """
+    Detect which of the four OEE tracker layouts this file uses.
+
+    OLDEST:  no Operator column; col I = Product type; OEE% at AP (42); 8 DT cols
+    OLD:     Operator at col I;  OEE% at AQ (43);  8 DT cols
+    NEW:     Operator at col I;  OEE% at AT (46); 11 DT cols
+    NEWEST:  Operator at col I;  OEE% at AW (49); 14 DT cols (adds startup, RM/PM unavail, peel-off)
+
+    Detection order (most specific first):
+      1. Col AW (49) header contains "OEE"  → NEWEST
+      2. Col AT (46) non-empty              → NEW
+      3. Col I  (9)  header contains "operator" → OLD
+      4. Otherwise                          → OLDEST
+    """
+    aw_hdr = str(ws.cell(row=10, column=49).value or "").strip().lower()
+    if "oee" in aw_hdr:
+        log.info("  Detected NEWEST column layout (OEE% at col AW/49, 14 DT categories)")
+        return OEE_COL_NEWEST
+    if ws.cell(row=10, column=46).value not in (None, ""):
+        log.info("  Detected NEW column layout (OEE% at col AT/46, 11 DT categories)")
         return OEE_COL_NEW
-    return OEE_COL_OLD
+    col_i_hdr = str(ws.cell(row=10, column=9).value or "").strip().lower()
+    if "operator" in col_i_hdr:
+        log.info("  Detected OLD column layout (OEE% at col AQ/43, Operator at col I)")
+        return OEE_COL_OLD
+    log.info("  Detected OLDEST column layout (OEE% at col AP/42, no Operator column)")
+    return OEE_COL_OLDEST
 
 # OEE_COL is set per-file inside parse_file() — do not use this global directly
 OEE_COL = OEE_COL_OLD  # fallback default (unused after parse_file sets it)
 
 SHIFT_COL = {
-    "date":    2,  # B
-    "shift":   3,  # C
-    "machine": 4,  # D
-    "ran":     5,  # E
-    "reason":  6,  # F
+    "date":      2,  # B
+    "shift":     3,  # C
+    "machine":   4,  # D
+    "ran":       5,  # E
+    "reason":    6,  # F
+    "hours_run": 7,  # G  ← new column (Y=12, N=0, P=partial hours entered)
 }
 
-DT_KEYS   = ["dt_label","dt_colour","dt_mould","dt_label_unavail",
-             "dt_proc_fail","dt_mach_bkdn","dt_mould_bkdn","dt_other"]
-DT_LABELS = ["Label change","Colour change","Mould change","Label unavail.",
-             "Process failure","Mach. breakdown","Mould breakdown","Other"]
+DT_KEYS   = ["dt_label","dt_colour","dt_mould","dt_startup",
+             "dt_label_unavail","dt_rm_pm_unavail","dt_peel_off",
+             "dt_proc_fail","dt_mach_bkdn","dt_mould_bkdn","dt_robot_bkdn",
+             "dt_manpower","dt_power_cut","dt_other"]
+DT_LABELS = ["Label change","Colour change","Mould change","Startup/setup",
+             "Label unavail.","RM/PM unavail.","Label peel-off",
+             "Process failure","Mach. breakdown","Mould breakdown","Robot breakdown",
+             "Manpower unavail.","Power cut","Other"]
 
 
 # ── Date extraction ───────────────────────────────────────────────────────────
@@ -262,13 +398,35 @@ def parse_file(path):
         reason_raw = ws_shift.cell(row=row, column=SHIFT_COL["reason"]).value
         reason_str = str(reason_raw).strip() if reason_raw else None
 
-        slot = {"date": date_str, "shift": shift_str, "machine_no": machine_no}
+        # Y/N are definitive — ignore col G to prevent manual entry errors.
+        # P relies on col G (hours actually run entered by supervisor).
+        if ran_str == "Y":
+            hours_run = 12.0
+        elif ran_str == "N":
+            hours_run = 0.0
+        else:  # P — partial: read from col G
+            hrs_raw = ws_shift.cell(row=row, column=SHIFT_COL["hours_run"]).value
+            try:
+                hours_run = float(hrs_raw) if hrs_raw is not None else 0.0
+            except (ValueError, TypeError):
+                hours_run = 0.0
+
+        slot = {
+            "date":       date_str,
+            "shift":      shift_str,
+            "machine_no": machine_no,
+            "hours_run":  hours_run,
+            "ran_flag":   ran_str,   # Y / N / P
+        }
         all_slots.append(slot)
 
-        if ran_str == "N":
+        if ran_str in ("N", "P"):
             not_run.append({
-                **slot,
-                "reason": reason_str or "Missing reason code",
+                "date":       date_str,
+                "shift":      shift_str,
+                "machine_no": machine_no,
+                "hours_run":  hours_run,   # 0 for N; partial hrs for P
+                "reason":     reason_str or "Missing reason code",
             })
 
     log.info(f"  Shift tracker: {len(all_slots)} slots, {len(not_run)} not run")
@@ -290,27 +448,28 @@ def parse_file(path):
             last_row = _r
 
     for row in range(11, last_row + 1):
-        # ── Row inclusion logic — matches Excel's SUMIF(P>0) exactly ──────
-        # Excel includes a row if target_pcs > 0, regardless of to_fill flag.
-        # Some rows are marked "No" but have real production data filled in
-        # (operator error or copy-paste). We must include those too.
-        # We require both target_pcs > 0 AND actual_good_pcs > 0 to avoid
-        # picking up formula-populated but genuinely empty rows.
+        # ── Row inclusion logic — matches Excel's SUMIF(O>0) exactly ──────
+        # Include a row if rated_cycle_sec > 0 (column O), same filter as
+        # the Excel aggregate formulas in the manual calculation sheet.
+        # This covers rows with actual production = 0 (machine ran but no
+        # good output) as long as a valid cycle time exists.
         def get(col_name, row=row):
             return ws_oee.cell(row=row, column=OEE_COL[col_name]).value
 
         def num(col_name, default=0, row=row):
+            # Gracefully return default for columns not in this layout (old files)
+            if col_name not in OEE_COL:
+                return default
             v = ws_oee.cell(row=row, column=OEE_COL[col_name]).value
             try:
                 return float(v) if v is not None else default
             except (ValueError, TypeError):
                 return default
 
-        target_val = num("target_pcs")
-        actual_val = num("actual_good_pcs")
+        cycle_sec = num("rated_cycle_sec")
 
-        # Skip rows with no real production data
-        if target_val <= 0 or actual_val <= 0:
+        # Skip rows with no valid cycle time (VLOOKUP failed or row is empty)
+        if cycle_sec <= 0:
             continue
 
         machine_no = num("machine_no")
@@ -338,40 +497,26 @@ def parse_file(path):
             "dt_label":         num("dt_label"),
             "dt_colour":        num("dt_colour"),
             "dt_mould":         num("dt_mould"),
+            "dt_startup":       num("dt_startup"),        # v3: machine startup/setup
             "dt_label_unavail": num("dt_label_unavail"),
+            "dt_rm_pm_unavail": num("dt_rm_pm_unavail"),  # v3: other RM/PM unavailability
+            "dt_peel_off":      num("dt_peel_off"),       # v3: label peel-off
             "dt_proc_fail":     num("dt_proc_fail"),
             "dt_mach_bkdn":     num("dt_mach_bkdn"),
             "dt_mould_bkdn":    num("dt_mould_bkdn"),
+            "dt_robot_bkdn":    num("dt_robot_bkdn"),
+            "dt_manpower":      num("dt_manpower"),
+            "dt_power_cut":     num("dt_power_cut"),
             "dt_other":         num("dt_other"),
         })
 
     log.info(f"  OEE tracker:   {len(records)} active machine-shift rows")
 
-    # ── Rebuild not_run to match the new slot definition ─────────────────
-    # not_run = slots in all_slots that have NO OEE record (target_pcs > 0)
-    # This ensures the reason breakdown counts tie exactly to the
-    # not-run count used for shift run % (total_slots - ran).
-    # Reasons are looked up from the Shift tracker reason map built above.
-    ran_set = {(r["date"], r["shift"], r["machine_no"]) for r in records}
-    # Build a reason lookup from the original shift-tracker not_run list
-    reason_lookup = {
-        (nr["date"], nr["shift"], nr["machine_no"]): nr["reason"]
-        for nr in not_run
-    }
-    not_run = [
-        {
-            "date":       s["date"],
-            "shift":      s["shift"],
-            "machine_no": s["machine_no"],
-            "reason":     reason_lookup.get(
-                              (s["date"], s["shift"], s["machine_no"]),
-                              "Missing reason code"
-                          ),
-        }
-        for s in all_slots
-        if (s["date"], s["shift"], s["machine_no"]) not in ran_set
-    ]
-    log.info(f"  Not-run slots: {len(not_run)} (Shift tracker total - OEE ran)")
+    # not_run is already populated from shift tracker N entries above.
+    # The shift tracker is the source of truth — do not override with
+    # "no OEE record" logic, which incorrectly flags Y slots on days
+    # where OEE data was missing.
+    log.info(f"  Not-run slots: {len(not_run)} (Shift tracker N entries)")
 
     return {
         "date_str":  date_str,
@@ -385,42 +530,33 @@ def parse_file(path):
 
 def compute_metrics(records, not_run, all_slots):
     """
-    Weighted-average approach: each metric is a per-row rate averaged
-    by duration_hrs weight. Speed loss is derived as residual.
+    Duration-weighted average approach: each metric is a per-row rate averaged
+    by duration_hrs weight so every machine-hour counts equally regardless of
+    product type. Speed loss is derived as residual.
     """
     def s(fn):
         return sum(fn(r) for r in records)
 
-    # ── Weighted-average approach for all primary metrics ─────────────────
-    # Products are not like-for-like (big containers vs small lids/spoons
-    # have very different cycle times and cavity counts). Each metric is a
-    # weighted average of per-row rates, weight = duration_hrs, so every
-    # machine-hour counts equally regardless of product type.
-    # Speed is the RESIDUAL so avail×cav×speed×qual = oee_running always.
-    # Note: residual speed slightly understates true speed loss — it absorbs
-    # the positive covariance between factors (good shifts tend to be good
-    # on all dimensions simultaneously).
-
-    total_dur_w = s(lambda r: r["duration_hrs"])
+    total_dur_w = s(lambda r: r["duration_hrs"]) or 1
 
     def wt(r, val):
         return val * (r["duration_hrs"] or 0)
 
     avail_loss = s(lambda r: wt(r,
         (r["duration_hrs"] - r["run_hrs"]) / r["duration_hrs"]
-        if r["duration_hrs"] else 0)) / total_dur_w if total_dur_w else 0
+        if r["duration_hrs"] else 0)) / total_dur_w
 
     cav_loss = s(lambda r: wt(r,
         (r["total_cavities"] - r["running_cavities"]) / r["total_cavities"]
-        if r["total_cavities"] else 0)) / total_dur_w if total_dur_w else 0
+        if r["total_cavities"] else 0)) / total_dur_w
 
     quality_loss = s(lambda r: wt(r,
         r["total_rej_pcs"] / (r["total_rej_pcs"] + r["actual_good_pcs"])
-        if (r["total_rej_pcs"] + r["actual_good_pcs"]) else 0)) / total_dur_w if total_dur_w else 0
+        if (r["total_rej_pcs"] + r["actual_good_pcs"]) else 0)) / total_dur_w
 
     oee_running = s(lambda r: wt(r,
         r["actual_good_pcs"] / r["target_pcs"]
-        if r["target_pcs"] else 0)) / total_dur_w if total_dur_w else 0
+        if r["target_pcs"] else 0)) / total_dur_w
 
     # Raw sums for output display fields
     total_shift_hrs = s(lambda r: r["duration_hrs"])
@@ -437,7 +573,14 @@ def compute_metrics(records, not_run, all_slots):
     ran_keys_set  = {(r["date"], r["shift"], r["machine_no"]) for r in records}
     ran_cnt       = len(ran_keys_set)
     not_ran_cnt   = total_slots - ran_cnt
-    shift_run_pct = ran_cnt / total_slots if total_slots else 1
+
+    # Pro-rated shift run % using hours_run from Shift tracker.
+    # Y → 12 hrs, N → 0 hrs, P → partial hours (user entered).
+    # For old files without hours_run, the fallback in parse_file sets
+    # Y=12 / N=0, so the formula reduces to the old binary ran_cnt/total.
+    SHIFT_HRS     = 12.0   # standard shift duration
+    total_ran_hrs = sum(s.get("hours_run", SHIFT_HRS) for s in all_slots)
+    shift_run_pct = total_ran_hrs / (total_slots * SHIFT_HRS) if total_slots else 1
 
     # Speed loss: residual — guarantees avail × cav × speed × qual = oee_running
     avail_rate   = 1 - avail_loss
@@ -493,6 +636,191 @@ def compute_metrics(records, not_run, all_slots):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+def _parse_int(v):
+    """
+    Robustly convert a cell value to int.
+    Used for machine_no, cavities, and other fields that are always pure integers.
+    Returns None if the value is empty or unparseable.
+    """
+    if v is None:
+        return None
+    s = str(v).strip()
+    if not s:
+        return None
+    try:
+        return int(float(s))       # handles '12', '12.0', 12, 12.0
+    except (ValueError, TypeError):
+        pass
+    m = re.match(r'^(\d+)', s)    # grabs leading digits from strings like '12abc'
+    return int(m.group(1)) if m else None
+
+
+def _mould_str(v) -> "str | None":
+    """
+    Convert a mould number cell value to a clean string, PRESERVING any suffix.
+    Examples:
+      19172       → '19172'
+      19172.0     → '19172'     (Excel stores integers as floats)
+      '19172(11)' → '19172(11)' (suffix kept — this is the full mould name)
+      ' 19172 '   → '19172'     (whitespace stripped)
+    Returns None if the value is empty.
+    """
+    if v is None:
+        return None
+    s = str(v).strip()
+    if not s:
+        return None
+    # Excel numeric cells come through as floats (e.g. 19172.0) — strip trailing .0
+    if re.match(r'^\d+\.0$', s):
+        return s[:-2]
+    return s
+
+
+def export_master(excel_files: list, out_path: str) -> None:
+    """
+    Read the Master sheet and write oee_master.json.
+    Priority:
+      1. OEE_Master.xlsx in the same folder as the first excel_file (standalone master)
+      2. Most recent daily Excel that contains a "Master" sheet (legacy fallback)
+    Schema per combination:
+      { product_name, weight_gm, mould_no, cavities, machine_no, cycle_time_sec, combination }
+    """
+    master_ws = None
+
+    # ── 1. Look for standalone OEE_Master.xlsx first ────────────────────────
+    if excel_files:
+        standalone = Path(excel_files[0]).parent / "OEE_Master.xlsx"
+        if standalone.exists():
+            try:
+                wb = load_workbook(str(standalone), data_only=True)
+                if "Master" in wb.sheetnames:
+                    master_ws = wb["Master"]
+                    log.info(f"  Reading Master sheet from standalone {standalone.name}")
+            except Exception as e:
+                log.warning(f"  Could not read {standalone.name}: {e}")
+
+    # ── 2. Fallback: most recent daily Excel with a Master sheet ─────────────
+    if master_ws is None:
+        for fp in reversed(excel_files):
+            try:
+                wb = load_workbook(str(fp), data_only=True)
+                if "Master" in wb.sheetnames:
+                    master_ws = wb["Master"]
+                    log.info(f"  Reading Master sheet from {Path(fp).name} (fallback)")
+                    break
+            except Exception:
+                continue
+
+    if master_ws is None:
+        log.warning("  No Master sheet found — oee_master.json not updated")
+        return
+
+    combinations = []
+    seen = set()
+    for row in range(3, master_ws.max_row + 1):
+        product_name  = master_ws.cell(row=row, column=2).value
+        weight_gm     = master_ws.cell(row=row, column=3).value
+        mould_no      = master_ws.cell(row=row, column=4).value
+        cavities      = master_ws.cell(row=row, column=5).value
+        machine_no    = master_ws.cell(row=row, column=6).value
+        cycle_time    = master_ws.cell(row=row, column=8).value
+
+        if not product_name or not mould_no or not machine_no:
+            continue
+
+        pname     = str(product_name).strip()
+        mould_s   = _mould_str(mould_no)
+        machine_i = _parse_int(machine_no)
+
+        if not mould_s or machine_i is None:
+            log.warning(f"  Skipping master row {row}: could not parse mould_no={mould_no!r} or machine_no={machine_no!r}")
+            continue
+
+        key = (pname, mould_s, machine_i)
+        if key in seen:
+            continue
+        seen.add(key)
+
+        try:
+            combinations.append({
+                "product_name":    pname,
+                "weight_gm":       float(weight_gm) if weight_gm else None,
+                "mould_no":        mould_s,          # stored as string to preserve suffixes like '(11)'
+                "cavities":        _parse_int(cavities),
+                "machine_no":      machine_i,
+                "cycle_time_sec":  float(cycle_time) if cycle_time else None,
+                "combination":     f"{pname} | {mould_s} | {machine_i}",
+            })
+        except (ValueError, TypeError):
+            continue
+
+    # Derive product_type from name (LID → Lid, else Container)
+    for c in combinations:
+        c["product_type"] = "Lid" if "LID" in c["product_name"].upper() else "Container"
+
+    # Unique sorted lists for dropdowns
+    # Moulds are strings (may have suffixes like '19172(11)') — sort by numeric prefix first
+    def _mould_sort_key(s):
+        m = re.match(r'^(\d+)', str(s))
+        return (int(m.group(1)) if m else 0, str(s))
+
+    products = sorted(set(c["product_name"] for c in combinations))
+    moulds   = sorted(set(c["mould_no"]     for c in combinations), key=_mould_sort_key)
+    machines = sorted(set(c["machine_no"]   for c in combinations))
+
+    master_data = {
+        "_meta":        {"generated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")},
+        "combinations": combinations,
+        "products":     products,
+        "moulds":       moulds,
+        "machines":     machines,
+    }
+
+    Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(master_data, f, indent=2)
+    log.info(f"  Master exported: {len(combinations)} combinations → {out_path}")
+
+
+def read_json_submissions(folder: Path) -> list:
+    """
+    Read all JSON submission files from submissions/ subfolder.
+    Returns a list of parse_file()-compatible result dicts.
+    """
+    sub_folder = folder / "submissions"
+    if not sub_folder.exists():
+        return []
+
+    results = []
+    for jf in sorted(sub_folder.glob("*.json")):
+        try:
+            with open(jf, encoding="utf-8") as f:
+                data = json.load(f)
+            # Each submission file contains a list of shift records for one date
+            if not isinstance(data, dict) or "date" not in data:
+                continue
+
+            date_str  = data["date"]
+            records   = data.get("records",   [])
+            not_run   = data.get("not_run",   [])
+            all_slots = data.get("all_slots", [])
+
+            if not records and not all_slots:
+                continue
+
+            results.append({
+                "date_str":  date_str,
+                "records":   records,
+                "not_run":   not_run,
+                "all_slots": all_slots,
+            })
+            log.info(f"  Read JSON submission: {jf.name}  ({len(records)} OEE records, {len(all_slots)} slots)")
+        except Exception as e:
+            log.warning(f"  Could not read submission {jf.name}: {e}")
+
+    return results
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="IML OEE ETL -- converts daily Excel files to dashboard JSON"
@@ -506,6 +834,11 @@ def main():
         "--output",
         default="oee_data.json",
         help="Output JSON path (default: oee_data.json)"
+    )
+    parser.add_argument(
+        "--master",
+        default="oee_master.json",
+        help="Master export JSON path (default: oee_master.json)"
     )
     args = parser.parse_args()
 
@@ -523,6 +856,10 @@ def main():
     if not excel_files:
         log.error("No .xlsx files found. Check the --folder path.")
         sys.exit(1)
+
+    # ── Export master data (always, from most recent Excel with Master sheet) ─
+    log.info("Exporting master data...")
+    export_master(excel_files, args.master)
 
     # ── Parse all files ────────────────────────────────────────────────────
     all_records  = []
@@ -548,6 +885,32 @@ def main():
         )
         daily_data.append({
             "date":          result["date_str"],
+            "overall_oee":   day_metrics["overall_oee"],
+            "oee_running":   day_metrics["oee_running"],
+            "shift_run_pct": day_metrics["shift_run_pct"],
+            "avail_loss":    day_metrics["avail_loss"],
+            "cav_loss":      day_metrics["cav_loss"],
+            "speed_loss":    day_metrics["speed_loss"],
+            "quality_loss":  day_metrics["quality_loss"],
+            "total_actual":  day_metrics["total_actual"],
+            "total_target":  day_metrics["total_target"],
+        })
+
+    # ── Read JSON submissions from submissions/ folder ─────────────────────
+    log.info("Checking for JSON submissions...")
+    json_results = read_json_submissions(folder)
+    for jr in json_results:
+        # Avoid double-counting: skip if same date already read from Excel
+        existing_dates = {d["date"] for d in daily_data}
+        if jr["date_str"] in existing_dates:
+            log.info(f"  Skipping JSON for {jr['date_str']} — already read from Excel")
+            continue
+        all_records.extend(jr["records"])
+        all_not_run.extend(jr["not_run"])
+        all_slots.extend(jr["all_slots"])
+        day_metrics = compute_metrics(jr["records"], jr["not_run"], jr["all_slots"])
+        daily_data.append({
+            "date":          jr["date_str"],
             "overall_oee":   day_metrics["overall_oee"],
             "oee_running":   day_metrics["oee_running"],
             "shift_run_pct": day_metrics["shift_run_pct"],
@@ -639,34 +1002,30 @@ def main():
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2, default=str)
 
-    log.info(f"\nDone. Written to: {out_path.resolve()}")
-    log.info(f"  Dates:   {date_range['from']}  to  {date_range['to']}  ({date_range['days']} day(s))")
-    log.info(f"  Records: {len(all_records)} machine-shift rows across {len(machines)} machines")
+    log.info("Done. Written to: " + str(out_path.resolve()))
+    log.info("  Dates:   " + date_range['from'] + "  to  " + date_range['to'])
+    log.info("  Records: " + str(len(all_records)) + " rows across " + str(len(machines)) + " machines")
 
     if failed_files:
-        log.warning(f"  Skipped {len(failed_files)} file(s): {failed_files}")
+        log.warning("  Skipped " + str(len(failed_files)) + " file(s): " + str(failed_files))
 
-    # Console waterfall summary
     d = aggregate
-    print("\n" + "="*55)
-    print(f"  WATERFALL  ({date_range['from']}  to  {date_range['to']})")
-    print("="*55)
     sr = d["shift_run_pct"]
     av = 1 - d["avail_loss"]
     cv = 1 - d["cav_loss"]
     sp = 1 - d["speed_loss"]
+    ql = 1 - d["quality_loss"]
+    print("\n" + "="*55)
+    print("  WATERFALL  (" + date_range['from'] + "  to  " + date_range['to'] + ")")
+    print("="*55)
     print(f"  Theoretical max          100.00%")
     print(f"  x Shift run %          {sr*100:8.2f}%   loss {(1-sr)*100:.2f}%  ({d['not_ran_slots']}/{d['total_slots']} slots idle)")
     print(f"  x Availability         {sr*av*100:8.2f}%   loss {d['avail_loss']*100:.2f}%  (downtime)")
     print(f"  x Cavity perf          {sr*av*cv*100:8.2f}%   loss {d['cav_loss']*100:.2f}%  (fewer cavities)")
     print(f"  x Speed (residual)     {sr*av*cv*sp*100:8.2f}%   loss {d['speed_loss']*100:.2f}%")
-    print(f"  x Quality              {d['overall_oee']*100:8.2f}%   loss {d['quality_loss']*100:.2f}%  (rejection)")
-    print(f"\n  OVERALL OEE            {d['overall_oee']*100:8.2f}%")
-    print(f"  OEE (running only)     {d['oee_running']*100:8.2f}%")
-    print(f"  Good output       {d['total_actual']:>12,} pcs")
-    print(f"  Target            {d['total_target']:>12,} pcs")
-    print("="*55 + "\n")
+    print(f"  x Quality              {sr*av*cv*sp*ql*100:8.2f}%   loss {d['quality_loss']*100:.2f}%  (rejections)")
+    print(f"  = Overall OEE          {d['overall_oee']*100:8.2f}%")
+    print("="*55)
 
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
