@@ -579,7 +579,7 @@ window.loadServerData = function(){
     }
     if (errEl) errEl.textContent = '';
 
-    fetch('output/oee_data.json')
+    fetch('/output/oee_data.json')
       .then(r=>{
         if(!r.ok) throw new Error('Server returned '+r.status);
         return r.json();
