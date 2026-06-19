@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IML Plant OEE — v7.3</title>
+<title>IML Plant OEE — v7.2</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -268,6 +268,8 @@ html.light .rm-editable:focus{background:rgba(79,142,247,0.08);}
   margin:10px 0;line-height:1.6;
 }
 .rm-json-key{font-family:var(--mono);font-size:10px;background:var(--bg3);padding:1px 5px;border-radius:3px;color:var(--purple);}
+
+
 </style>
 </head>
 <body>
@@ -275,7 +277,7 @@ html.light .rm-editable:focus{background:rgba(79,142,247,0.08);}
 <div id="dropZone">
   <div class="drop-box" id="dropBox">
     <div class="drop-icon">📂</div>
-    <div class="drop-title">IML Plant OEE — v7.3</div>
+    <div class="drop-title">IML Plant OEE — v7.2</div>
     <div class="drop-sub">Load the latest data from the server, or drop your own <strong>oee_data.json</strong> file.</div>
     <button class="drop-btn drop-btn-primary" id="loadServerBtn" onclick="loadServerData()">⬇ Load current data</button>
     <div class="drop-or">or</div>
@@ -339,6 +341,7 @@ html.light .rm-editable:focus{background:rgba(79,142,247,0.08);}
     <span class="ctrl-label">Operator</span>
     <select id="fOperator" onchange="applyFilters()" style="max-width:110px"><option value="all">All operators</option></select>
     <div style="margin-left:auto">
+      <button onclick="downloadFullDump()" title="Download full data dump as Excel" style="margin-right:6px;padding:4px 10px;font-size:11px;border-radius:4px;border:1px solid var(--border);background:var(--panel);color:var(--text);cursor:pointer">&#11015; Full dump</button>
       <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle light/dark theme">☀︎</button>
     </div>
   </div>
@@ -643,6 +646,67 @@ function downloadTableXls(id,fname){
   });
   XLSX.writeFile(wb,fname);
 }
+function downloadFullDump(){
+    const from=document.getElementById('fDateFrom').value;
+    const to=document.getElementById('fDateTo').value;
+    const shift=document.getElementById('fShift').value;
+    const machine=document.getElementById('fMachine').value;
+    const inRange=d=>(!from||d>=from)&&(!to||d<=to);
+
+    // All slots sheet
+    const nrMap={};
+    (DB.not_run||[]).forEach(r=>{
+      nrMap[r.date+'|'+r.shift+'|'+r.machine_no]=r.reason||'';
+    });
+    const slotRows=(DB.all_slots||[])
+      .filter(s=>inRange(s.date)&&(shift==='all'||s.shift===shift)&&(machine==='all'||String(s.machine_no)===String(machine)))
+      .sort((a,b)=>a.date.localeCompare(b.date)||a.shift.localeCompare(b.shift)||(a.machine_no-b.machine_no))
+      .map(s=>{
+        const rf=s.ran_flag||'Y';
+        const reason=rf!=='Y'?(nrMap[s.date+'|'+s.shift+'|'+s.machine_no]||''):'';
+        return[s.date,getDateDay(s.date),s.shift,s.machine_no,rf,s.hours_run!=null?s.hours_run:12,reason];
+      });
+
+    // OEE tracker sheet
+    const recs=(DB.records||[]).filter(r=>inRange(r.date)&&(shift==='all'||r.shift===shift)&&(machine==='all'||String(r.machine_no)===String(machine)));
+    const oeeRows=recs.map(r=>[
+      r.date,r.shift,r.machine_no,r.operator_name||'',
+      r.product_type,r.product_name,r.mould_no,
+      r.duration_hrs,r.run_hrs,
+      r.total_cavities,r.running_cavities,
+      r.target_pcs,r.actual_good_pcs,r.total_rej_pcs,
+      r.rej_label_kg||0,r.rej_plain_kg||0,r.rej_trial_kg||0,
+      r.dt_label||0,r.dt_colour||0,r.dt_mould||0,
+      r.dt_startup||0,
+      r.dt_label_unavail||0,r.dt_rm_pm_unavail||0,r.dt_peel_off||0,
+      r.dt_proc_fail||0,r.dt_mach_bkdn||0,r.dt_mould_bkdn||0,
+      r.dt_robot_bkdn||0,r.dt_manpower||0,r.dt_power_cut||0,r.dt_other||0,
+    ]);
+
+    const wb=XLSX.utils.book_new();
+    const ws1=XLSX.utils.aoa_to_sheet([
+      ['Date','Day','Shift','Machine','Ran?','Hours Run','Reason'],
+      ...slotRows
+    ]);
+    ws1['!cols']=[{wch:12},{wch:10},{wch:8},{wch:10},{wch:6},{wch:10},{wch:55}];
+    XLSX.utils.book_append_sheet(wb,ws1,'All slots');
+
+    const oeeHdrs=['Date','Shift','Machine','Operator','Product Type','Product Name','Mould No',
+      'Duration Hrs','Run Hrs','Total Cav','Running Cav',
+      'Target Pcs','Actual Good Pcs','Total Rej Pcs',
+      'Rej Label kg','Rej Plain kg','Rej Trial kg',
+      'DT Label','DT Colour','DT Mould','DT Startup',
+      'DT Label Unavail','DT RM/PM Unavail','DT Peel-off',
+      'DT Proc Fail','DT Mach Bkdn','DT Mould Bkdn',
+      'DT Robot Bkdn','DT Manpower','DT Power Cut','DT Other'];
+    const ws2=XLSX.utils.aoa_to_sheet([oeeHdrs,...oeeRows]);
+    ws2['!cols']=oeeHdrs.map(h=>({wch:Math.max(h.length+2,12)}));
+    XLSX.utils.book_append_sheet(wb,ws2,'OEE tracker');
+
+    const dateStr=new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb,`OEE_Full_Dump_${dateStr}.xlsx`);
+  }
+
 // ── External HTML tooltip (avoids Canvas clipping) ─────────────
 const _extTT=(()=>{
   const d=document.createElement('div');
@@ -692,9 +756,9 @@ function extTooltip(context){
     if(r.bottom>window.innerHeight-8)_extTT.style.top=(window.innerHeight-r.height-8)+'px';
   });
 }
-const DT_KEYS  =['dt_label','dt_colour','dt_mould','dt_label_unavail','dt_proc_fail','dt_mach_bkdn','dt_mould_bkdn','dt_robot_bkdn','dt_manpower','dt_power_cut','dt_other'];
-const DT_LABELS=['Label change','Colour change','Mould change','Label unavail.','Process failure','Mach. breakdown','Mould breakdown','Robot breakdown','Manpower unavail.','Power cut','Other'];
-const DT_CAT={'Label change':'planned','Colour change':'planned','Mould change':'planned','Label unavail.':'unplanned','Process failure':'unplanned','Mach. breakdown':'unplanned','Mould breakdown':'unplanned','Robot breakdown':'unplanned','Manpower unavail.':'unplanned','Power cut':'unplanned','Other':'other'};
+const DT_KEYS  =['dt_label','dt_colour','dt_mould','dt_startup','dt_label_unavail','dt_rm_pm_unavail','dt_peel_off','dt_proc_fail','dt_mach_bkdn','dt_mould_bkdn','dt_robot_bkdn','dt_manpower','dt_power_cut','dt_other'];
+const DT_LABELS=['Label change','Colour change','Mould change','Startup/setup','Label unavail.','RM/PM unavail.','Label peel-off','Process failure','Mach. breakdown','Mould breakdown','Robot breakdown','Manpower unavail.','Power cut','Other'];
+const DT_CAT={'Label change':'planned','Colour change':'planned','Mould change':'planned','Startup/setup':'planned','Label unavail.':'unplanned','RM/PM unavail.':'unplanned','Label peel-off':'unplanned','Process failure':'unplanned','Mach. breakdown':'unplanned','Mould breakdown':'unplanned','Robot breakdown':'unplanned','Manpower unavail.':'unplanned','Power cut':'unplanned','Other':'other'};
 const CAT_COLOR={planned:'var(--planned)',unplanned:'var(--unplanned)',other:'var(--other)'};
 const CAT_LABEL={planned:'Planned',unplanned:'Unplanned',other:'Other'};
 const WF_COLORS={start:'var(--wf-start)',shift:'var(--wf-shift)',avail:'var(--wf-avail)',cav:'var(--wf-cav)',speed:'var(--wf-speed)',quality:'var(--wf-quality)'};
@@ -712,20 +776,21 @@ function categoriseNotRun(reason){
 // ═══════════════════════════════════════════════
 function compute(records,not_run_list,all_slots){
   if(!records.length)return null;
-  // Weighted-average approach — each metric is wtd avg of per-row rates
-  // weight = duration_hrs so every machine-hour counts equally
-  // regardless of product type (containers vs lids vs spoons).
+  // Duration-weighted average approach — each metric is the weighted avg of per-row
+  // rates, weight = duration_hrs, so every machine-hour counts equally regardless of
+  // product type (containers vs lids vs spoons have very different cycle times/cavities).
   // Speed is residual: avail × cav × speed × qual = oee_running always.
   const s=fn=>records.reduce((a,r)=>a+(fn(r)||0),0);
   const totalDurW=s(r=>r.duration_hrs)||1;
   const wt=(r,v)=>v*(r.duration_hrs||0);
+  // Raw sums (for display and downtime breakdown)
+  const total_shift_hrs=s(r=>r.duration_hrs),total_run_hrs=s(r=>r.run_hrs);
+  const total_target=s(r=>r.target_pcs),total_actual=s(r=>r.actual_good_pcs),total_rej=s(r=>r.total_rej_pcs);
+  // Metrics — duration-weighted averages
   const avail_loss=s(r=>wt(r,r.duration_hrs?(r.duration_hrs-r.run_hrs)/r.duration_hrs:0))/totalDurW;
   const cav_loss=s(r=>wt(r,r.total_cavities?(r.total_cavities-r.running_cavities)/r.total_cavities:0))/totalDurW;
   const quality_loss=s(r=>wt(r,(r.total_rej_pcs+r.actual_good_pcs)>0?r.total_rej_pcs/(r.total_rej_pcs+r.actual_good_pcs):0))/totalDurW;
   const oee_running=s(r=>wt(r,r.target_pcs?r.actual_good_pcs/r.target_pcs:0))/totalDurW;
-  // Raw sums for display (good pcs, target pcs)
-  const total_shift_hrs=s(r=>r.duration_hrs),total_run_hrs=s(r=>r.run_hrs);
-  const total_target=s(r=>r.target_pcs),total_actual=s(r=>r.actual_good_pcs),total_rej=s(r=>r.total_rej_pcs);
   // ran   = unique (date,shift,machine) with target>0 in OEE tracker = records
   // total = all slots from Shift tracker = all_slots
   // not run count = total - ran (delta)
@@ -736,7 +801,12 @@ function compute(records,not_run_list,all_slots){
   all_slots.forEach(s=>seen_all.add(s.date+s.shift+s.machine_no));
   const total_slots=seen_all.size;
   const not_ran_cnt=total_slots-ran_cnt;
-  const shift_run_pct=total_slots?ran_cnt/total_slots:1;
+  // Hours-based shift run %: Y=12hrs, N=0hrs, P=hours_run
+  const total_sched_hrs=total_slots*12;
+  const total_ran_hrs_slots=all_slots.reduce((a,s)=>a+(s.hours_run!=null?s.hours_run:12),0);
+  const shift_run_pct=total_sched_hrs>0?total_ran_hrs_slots/total_sched_hrs:1;
+  // Pro-rata slot count: Y=1.0, P=hours_run/12, N=0 (displayed in top tile sub-label)
+  const pro_rata_ran=total_ran_hrs_slots/12;
   const avail_rate=1-avail_loss,cav_rate=1-cav_loss,quality_rate=1-quality_loss;
   // Speed loss: residual — guarantees avail×cav×speed×qual = oee_running
   const denom_spd=avail_rate*cav_rate*quality_rate;
@@ -752,8 +822,8 @@ function compute(records,not_run_list,all_slots){
   // Planned downtime, planned not-run, quality, other unchanged
 
   // Availability: halve unplanned DT categories
-  const unplanned_dt_keys=['dt_label_unavail','dt_proc_fail','dt_mach_bkdn','dt_mould_bkdn'];
-  const planned_dt_keys  =['dt_label','dt_colour','dt_mould'];
+  const unplanned_dt_keys=['dt_label_unavail','dt_rm_pm_unavail','dt_peel_off','dt_proc_fail','dt_mach_bkdn','dt_mould_bkdn','dt_robot_bkdn','dt_manpower','dt_power_cut'];
+  const planned_dt_keys  =['dt_label','dt_colour','dt_mould','dt_startup'];
   const other_dt_keys    =['dt_other'];
   const total_unplanned_dt=s(r=>unplanned_dt_keys.reduce((a,k)=>a+(r[k]||0),0));
   const total_planned_dt  =s(r=>planned_dt_keys.reduce((a,k)=>a+(r[k]||0),0));
@@ -780,12 +850,19 @@ function compute(records,not_run_list,all_slots){
   const dt_breakdown={};
   DT_KEYS.forEach((k,i)=>{
     const hrs=s(r=>r[k]);
-    dt_breakdown[DT_LABELS[i]]={pct:total_shift_hrs?hrs/total_shift_hrs:0,hrs};
+    dt_breakdown[DT_LABELS[i]]={pct:total_shift_hrs?(hrs/total_shift_hrs)*shift_run_pct:0,hrs};
   });
+  // Reason breakdown by idle hours (N→12hrs, P→12−hours_run) ÷ total scheduled hrs
   const reason_counts={};
-  not_run_list.forEach(r=>{const key=r.reason||'Missing reason code';reason_counts[key]=(reason_counts[key]||0)+1;});
+  const reason_idle_hrs={};
+  not_run_list.forEach(r=>{
+    const key=r.reason||'Missing reason code';
+    const idle=12-(r.hours_run||0);
+    reason_counts[key]=(reason_counts[key]||0)+1;
+    reason_idle_hrs[key]=(reason_idle_hrs[key]||0)+idle;
+  });
   const reason_pcts={};
-  Object.entries(reason_counts).forEach(([k,v])=>reason_pcts[k]=total_slots?v/total_slots:0);
+  Object.entries(reason_idle_hrs).forEach(([k,v])=>reason_pcts[k]=total_sched_hrs>0?v/total_sched_hrs:0);
 
   // Per-machine downtime for avail waterfall breakdown
   const avail_mach=[];
@@ -797,11 +874,11 @@ function compute(records,not_run_list,all_slots){
   avail_mach.sort((a,b)=>b.dt_hrs-a.dt_hrs);
 
   return {
-    total_shift_hrs,total_run_hrs,total_target,total_actual,total_rej,
+    total_shift_hrs,total_run_hrs,total_target,total_actual,total_rej,total_sched_hrs,
     avail_loss,cav_loss,speed_loss,quality_loss,
     oee_running,shift_run_pct,overall_oee,
     avail_rate,cav_rate,speed_rate,quality_rate,
-    ran_cnt,not_ran_cnt,total_slots,
+    ran_cnt,not_ran_cnt,total_slots,pro_rata_ran,
     dt_breakdown,reason_pcts,
     tgt_oee_running,tgt_overall_oee,tgt_avail_loss,tgt_cav_loss,tgt_speed_loss,tgt_shift_run_pct,
     not_run_list:not_run_list, avail_mach,
@@ -1194,6 +1271,11 @@ function renderTrendLine(){
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`OEE: ${c.raw}%`}}},
       scales:{y:{min:0,max:110,ticks:{color:cTick(),callback:v=>v+'%',font:{size:10}},grid:{color:cGrid()}},x:{ticks:{color:cTick(),font:xFnt},grid:{display:false}}}}});
   } else {
+    // Overall bar
+    if(labels.length>1){
+      const _oC=compute(allFilt,allFiltNr,[...allFilt.map(r=>({date:r.date,shift:r.shift,machine_no:r.machine_no})),...allFiltNr]);
+      if(_oC){ labels.push('Overall'); oVals.push(+(_oC.overall_oee*100).toFixed(1)); rVals.push(+(_oC.oee_running*100).toFixed(1)); }
+    }
     setChartData('trendLine',{xLabel:_trendMode,labels,series:[{name:'Overall OEE',data:oVals},{name:'OEE (running)',data:rVals}]});
     charts['trendLine']=new Chart(ctx,{type:'bar',data:{labels,datasets:[
       {label:'Overall OEE',data:oVals,backgroundColor:tPctC(oVals,0.8),borderRadius:4,barPercentage:0.85,categoryPercentage:0.75},
@@ -1351,6 +1433,22 @@ function renderDailyLoss(records,not_run){
     const topDt=Object.entries(dtTotals).sort((a,b)=>b[1]-a[1]).slice(0,3);
     grpTooltipData[lbl]={topReasons,topDt};
   });
+  // Overall bar
+  if(labels.length>1){
+    const allR2=records.filter(r=>inRange(r.date));
+    const allNr2=(not_run||[]).filter(r=>inRange(r.date));
+    const allDs2=[...allR2.map(r=>({date:r.date,shift:r.shift,machine_no:r.machine_no})),...allNr2];
+    const ovC=compute(allR2,allNr2,allDs2);
+    if(ovC){
+      labels.push('Overall');
+      snr.push(+((1-ovC.shift_run_pct)*100).toFixed(1));
+      avail.push(+(ovC.avail_loss*100).toFixed(1));
+      cav.push(+(ovC.cav_loss*100).toFixed(1));
+      speed.push(+(ovC.speed_loss*100).toFixed(1));
+      qual.push(+(ovC.quality_loss*100).toFixed(1));
+      if(grpTooltipData) grpTooltipData['Overall']={topReasons:[],topDt:[]};
+    }
+  }
   const _dlNrRows=[],_dlDtRows=[];
   Object.entries(grpTooltipData).forEach(([lbl,dd])=>{
     dd.topReasons.forEach(([r,c])=>_dlNrRows.push([lbl,r,c]));
@@ -1428,15 +1526,17 @@ function renderNotRunLog(not_run){
   }).join('');
 }
 
-function renderDtStats(records,total_shift_hrs){
+function renderDtStats(records,total_shift_hrs,total_sched_hrs_,shift_run_pct_){
   const total_dt=DT_KEYS.reduce((s,k)=>s+records.reduce((a,r)=>a+(r[k]||0),0),0);
+  const _sr=shift_run_pct_||1;
+  const _denom=(total_shift_hrs&&_sr)?(total_shift_hrs/_sr):total_sched_hrs_||total_shift_hrs||1;
   let maxHrs=0,maxLabel='—';
   DT_KEYS.forEach((k,i)=>{const h=records.reduce((s,r)=>s+(r[k]||0),0);if(h>maxHrs){maxHrs=h;maxLabel=DT_LABELS[i];}});
   document.getElementById('dtStats').innerHTML=`
     <div style="background:var(--bg3);border-radius:6px;padding:10px">
       <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Total downtime</div>
       <div style="font-family:var(--mono);font-size:18px;color:var(--amber)">${total_dt.toFixed(1)} hrs</div>
-      <div style="font-size:10px;color:var(--text2)">${pct(total_shift_hrs?total_dt/total_shift_hrs:0)} of shift hrs</div>
+      <div style="font-size:10px;color:var(--text2)">${pct(total_dt/_denom)} of theoretical hrs</div>
     </div>
     <div style="background:var(--bg3);border-radius:6px;padding:10px">
       <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Biggest cause</div>
@@ -1674,18 +1774,31 @@ const _matrixCellData={};
 const DAY_NAMES=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 function getDateDay(dateStr){const d=new Date(dateStr+'T00:00:00');return DAY_NAMES[(d.getDay()+6)%7];}
 function fmtDateLabel(dateStr){const p=dateStr.split('-');return getDateDay(dateStr)+' '+p[2]+'/'+p[1];}
+function _localDateStr(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
 function getWeekStart(dateStr){
   const d=new Date(dateStr+'T00:00:00');
-  const day=d.getDay()||7;
-  d.setDate(d.getDate()-day+1);
-  return d.toISOString().slice(0,10);
+  const day=d.getDay()||7;           // 0(Sun)→7, Mon=1…Sat=6
+  d.setDate(d.getDate()-day+1);      // roll back to Monday
+  return _localDateStr(d);           // local date, no UTC shift
 }
 
 function fmtWeekLabel(weekStartStr){
   const m=new Date(weekStartStr+'T00:00:00');
-  const s=new Date(m.getTime()+6*86400000);
+  const sun=new Date(m.getTime()+6*86400000);
+  // Cap end date at latest data date for incomplete (current) week
+  let endDate=sun;
+  if(DB&&DB.records&&DB.records.length){
+    const latestStr=[...DB.records.map(r=>r.date)].sort().pop();
+    const latest=new Date(latestStr+'T00:00:00');
+    // Is this weekStartStr the same as the latest data's week start?
+    const ldow=(latest.getDay()+6)%7;
+    const latestMon=new Date(latest);latestMon.setDate(latest.getDate()-ldow);
+    if(m.getTime()===latestMon.getTime()&&latest<sun) endDate=latest;
+  }
   const f=d=>`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
-  return `${f(m)}–${f(s)}`;
+  return `${f(m)}–${f(endDate)}`;
 }
 
 function switchMatrix(dim,btn){
@@ -2243,9 +2356,8 @@ function computeWeekKPI(weeksBack){
   const dow=(latest.getDay()+6)%7; // 0=Mon … 6=Sun
   const curMon=new Date(latest);curMon.setDate(latest.getDate()-dow);
   const targetMon=new Date(curMon);targetMon.setDate(curMon.getDate()-weeksBack*7);
-  const targetEnd=weeksBack===0?new Date(latest):new Date(targetMon.getTime()+6*86400000);
-  const fmt=d=>d.toISOString().slice(0,10);
-  const hFrom=fmt(targetMon),hTo=fmt(targetEnd);
+  const targetEnd=weeksBack===0?new Date(latest):(()=>{const e=new Date(targetMon);e.setDate(targetMon.getDate()+6);return e;})();
+  const hFrom=_localDateStr(targetMon),hTo=_localDateStr(targetEnd);
   const shift_=document.getElementById('fShift').value;
   const machine_=document.getElementById('fMachine').value;
   const fType_=document.getElementById('fType').value;
@@ -2301,7 +2413,7 @@ function applyFilters(){
   } else {
     document.getElementById('k-shift-label').textContent='Shift run %';
     document.getElementById('k-shift').textContent=pct(d.shift_run_pct);
-    document.getElementById('k-shift-sub').textContent=`${d.ran_cnt} of ${d.total_slots} machine-slots ran`;
+    document.getElementById('k-shift-sub').textContent=`${d.pro_rata_ran!=null?d.pro_rata_ran.toFixed(1):d.ran_cnt} of ${d.total_slots} machine-slots ran`;
   }
   document.getElementById('k-run').textContent=pct(d.oee_running);
   document.getElementById('k-run-target').textContent=`Target: ${pct(d.tgt_oee_running)} *`;
@@ -2451,10 +2563,11 @@ function applyFilters(){
 
   // ── Excel data: Downtime split ───────────────────────────────────────────────
   (()=>{
-    const shiftHrs=d.total_shift_hrs||1;
+    const _shiftHrs=d.total_shift_hrs||1;
+    const _srPct=d.shift_run_pct||1;
     const sumRows=DT_KEYS.map((k,i)=>{
       const h=records.reduce((s,r)=>s+(r[k]||0),0);
-      return[DT_LABELS[i],DT_CAT[DT_LABELS[i]]||'other',+h.toFixed(2),+(h/shiftHrs*100).toFixed(1)];
+      return[DT_LABELS[i],DT_CAT[DT_LABELS[i]]||'other',+h.toFixed(2),+(h/_shiftHrs*_srPct*100).toFixed(1)];
     }).filter(r=>r[2]>0).sort((a,b)=>b[2]-a[2]);
     const machNos=[...new Set(records.map(r=>r.machine_no))].sort((a,b)=>a-b);
     const machRows=[];
@@ -2477,13 +2590,13 @@ function applyFilters(){
     });
     prodRows2.sort((a,b)=>a[0].localeCompare(b[0])||b[3]-a[3]);
     setTableData('dtSplit',{sheets:[
-      {name:'Summary',headers:['DT Category','Type','Hours','% of shift hrs'],rows:sumRows},
+      {name:'Summary',headers:['DT Category','Type','Hours','% of theoretical hrs'],rows:sumRows},
       {name:'By Machine',headers:['Machine','DT Category','Type','Hours'],rows:machRows},
       {name:'By Product',headers:['Product','DT Category','Type','Hours'],rows:prodRows2}
     ]});
   })();
   renderNotRunLog(not_run);
-  renderDtStats(records,d.total_shift_hrs);
+  renderDtStats(records,d.total_shift_hrs,d.total_sched_hrs,d.shift_run_pct);
   renderMachineBar(records,not_run);
   renderTrendLine();
   renderProductOeeBar(records,not_run);
@@ -2528,7 +2641,7 @@ function cascadeFilters(){
 // ═══════════════════════════════════════════════
 const README_HTML = `
 <h2>👋 Welcome — What Is This Dashboard?</h2>
-<p><span class="rm-editable" contenteditable="true">This dashboard shows how well our machines are running each shift at Moldman. It is updated from the daily production data file that your supervisor loads. You do not need to do anything to make the numbers appear — just read them and understand what they mean.</span></p>
+<p><span class="rm-editable" contenteditable="true">This dashboard shows how well our machines are running each shift at HomeMade. It is updated from the daily production data file that your supervisor loads. You do not need to do anything to make the numbers appear — just read them and understand what they mean.</span></p>
 <p><span class="rm-editable" contenteditable="true">If something looks wrong or a number seems off, please flag it to your shift supervisor rather than changing anything yourself.</span></p>
 
 <h2>📐 The Three Key Numbers</h2>
@@ -2611,7 +2724,7 @@ Quality               → held at current level</div>
 <h3>How often is this updated?</h3>
 <p><span class="rm-editable" contenteditable="true">The dashboard is updated when your supervisor loads a new data file. If you are not seeing recent data, ask them to reload with the latest export.</span></p>
 
-<p style="margin-top:22px;font-size:10px;color:var(--text3)">v7.3 · MoldMan Plant OEE Dashboard</p>
+<p style="margin-top:22px;font-size:10px;color:var(--text3)">v7.2 · HomeMade Plant OEE Dashboard</p>
 `;
 
 
@@ -2649,7 +2762,7 @@ function saveReadme(){
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'oee_dashboard_v7.3.html';
+  a.download = 'oee_dashboard_v7.2.html';
   a.click();
   URL.revokeObjectURL(url);
   // Flash save confirmation
@@ -2691,33 +2804,29 @@ function initDropZone(){
     reader.onload=e=>{
       try{
         DB=JSON.parse(e.target.result);
-        if(!DB.records||!Array.isArray(DB.records))throw new Error('Missing "records" array');
-        zone.style.display='none';
-        document.getElementById('app').style.display='block';
-        initDashboard();
-      }catch(err){
-        errEl.textContent='Invalid JSON: '+err.message;
+        if(!DB.records||!Array.isArray(DB.records)){
+          errEl.textContent='Invalid file — expected oee_data.json with a records array.'; DB=null; return;
+        }
+        if(!DB.not_run)  DB.not_run=[];
+        if(!DB.all_slots) DB.all_slots=[];
+        bootDashboard();
+      }catch(ex){
+        errEl.textContent='Could not parse file: '+ex.message; DB=null;
       }
     };
     reader.readAsText(file);
   }
 
-  // File input
-  inp.addEventListener('change',()=>handleFile(inp.files[0]));
-
-  // Drag events on document (not just the box)
-  document.addEventListener('dragover',e=>{e.preventDefault();box.classList.add('hover');zone.classList.add('drag-over');});
-  document.addEventListener('dragleave',e=>{if(!e.relatedTarget||e.relatedTarget===document.body){box.classList.remove('hover');zone.classList.remove('drag-over');}});
-  document.addEventListener('drop',e=>{
-    e.preventDefault();
-    box.classList.remove('hover');zone.classList.remove('drag-over');
-    // Only handle drop if drop zone is visible
-    if(zone.style.display==='none') return;
+  zone.addEventListener('dragover',e=>{e.preventDefault();box.classList.add('hover');});
+  zone.addEventListener('dragleave',()=>box.classList.remove('hover'));
+  zone.addEventListener('drop',e=>{
+    e.preventDefault(); box.classList.remove('hover');
     handleFile(e.dataTransfer.files[0]);
   });
+  inp.addEventListener('change',()=>{handleFile(inp.files[0]); inp.value='';});
+}
 
-  // Load current data from server
-  window.loadServerData = function(){
+window.loadServerData = function(){
 
   try {
     const btn = document.getElementById('loadServerBtn');
@@ -2761,7 +2870,7 @@ function initDropZone(){
     console.error("❌ CRASH:", e);
   }
 };
-}
+
 
 function setDropTab(tab, btn){
   document.querySelectorAll('#dropZone .view-tab').forEach(b=>b.classList.remove('active'));
@@ -2780,54 +2889,38 @@ function setDropTab(tab, btn){
   }
 }
 
-// ═══════════════════════════════════════════════
-// THEME TOGGLE
-// ═══════════════════════════════════════════════
 function toggleTheme(){
-  const isLight=document.documentElement.classList.toggle('light');
-  document.getElementById('themeBtn').textContent=isLight?'🌙':'☀︎';
-  updateChartDefaults();
-  if(DB) applyFilters();
+  const h=document.documentElement;
+  const isLight=h.classList.toggle('light');
+  const btn=document.getElementById('themeBtn');
+  if(btn) btn.textContent=isLight?'☀︎':'☾';
 }
-function updateChartDefaults(){
-  const isLight=document.documentElement.classList.contains('light');
-  Chart.defaults.color=isLight?'#4a5068':'#555d78';
-  Chart.defaults.borderColor=isLight?'rgba(0,0,0,0.06)':'rgba(255,255,255,0.05)';
-}
-
-
-function initDashboard(){
-  const dates=[...new Set(DB.records.map(r=>r.date))].sort();
-  document.getElementById('fDateFrom').value=dates[0];
-  document.getElementById('fDateTo').value=dates[dates.length-1];
-
-  const machines=[...new Set(DB.records.map(r=>r.machine_no))].sort((a,b)=>a-b);
+function bootDashboard(){
+  // Populate machine filter
   const mSel=document.getElementById('fMachine');
-  machines.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=`Machine ${m}`;mSel.appendChild(o);});
+  const machines=[...new Set(DB.records.map(r=>r.machine_no))].sort((a,b)=>a-b);
+  mSel.innerHTML='<option value="all">All machines</option>';
+  machines.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent='M'+m;mSel.appendChild(o);});
 
-  const products=[...new Set(DB.records.map(r=>r.product_name))].sort();
-  const pSel=document.getElementById('fProduct');
-  products.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;pSel.appendChild(o);});
-
-  // Operator dropdown — only show if any record has operator_name
-  const operators=[...new Set(DB.records.map(r=>r.operator_name).filter(Boolean))].sort();
+  // Populate operator filter
   const oSel=document.getElementById('fOperator');
-  if(operators.length){
-    operators.forEach(op=>{const o=document.createElement('option');o.value=op;o.textContent=op;oSel.appendChild(o);});
-  } else {
-    oSel.parentElement.style.display='none'; // hide Operator filter if no data
-    oSel.previousElementSibling.style.display='none';
-  }
+  const ops=[...new Set(DB.records.map(r=>r.operator_name).filter(Boolean))].sort();
+  oSel.innerHTML='<option value="all">All operators</option>';
+  ops.forEach(op=>{const o=document.createElement('option');o.value=op;o.textContent=op;oSel.appendChild(o);});
 
-  updateChartDefaults();
-  applyFilters();
+  // Populate product filter
+  const pSel=document.getElementById('fProduct');
+  const prods=[...new Set(DB.records.map(r=>r.product_name))].sort();
+  pSel.innerHTML='<option value="all">All products</option>';
+  prods.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;pSel.appendChild(o);});
+
+  // Show dashboard, hide drop zone
+  document.getElementById('dropZone').style.display='none';
+  document.getElementById('app').style.display='';
+  setQuick('all');
 }
-
-initDropZone();
-window.onload = function () {
-    console.log("Page loaded → calling loadServerData()");
-    loadServerData();
-};
+window.initDropZone=initDropZone;
+window.addEventListener('DOMContentLoaded',initDropZone);
 </script>
 </body>
 </html>
