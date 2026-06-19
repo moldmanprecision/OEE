@@ -577,8 +577,8 @@ window.loadServerData = function(){
       btn.textContent = 'Loading…';
       btn.disabled = true;
     }
-    if (errEl) errEl.textContent = '';
-
+    const errEl = document.getElementById('dropErr');
+if (errEl) errEl.textContent = '';
     fetch('/output/oee_data.json')
       .then(r=>{
         if(!r.ok) throw new Error('Server returned '+r.status);
@@ -589,7 +589,7 @@ window.loadServerData = function(){
 
         DB = data;
 
-        if (zone) zone.style.display = 'none';
+        document.getElementById('dropZone').style.display = 'none';
         document.getElementById('app').style.display = 'block';
 
         // 🔥 TRY BOTH (jo exist kare wo chale)
@@ -2854,10 +2854,9 @@ window.loadServerData = function(){
 
     DB = data;
 
-    if (zone) zone.style.display = 'none';
+    document.getElementById('dropZone').style.display = 'none';
     document.getElementById('app').style.display = 'block';
 
-    initFilters();
     applyFilters();
 
 
