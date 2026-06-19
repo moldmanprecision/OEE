@@ -1,11 +1,10 @@
 <!DOCTYPE html>
-<html lang="en" class="light">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IML Plant OEE — v7.2</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -67,18 +66,6 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5);cursor:po
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;position:relative;}
 .card-title{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
 .card-title .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
-.dl-btn{margin-left:auto;background:none;border:1px solid var(--border);border-radius:4px;color:var(--text3);cursor:pointer;font-size:11px;padding:1px 6px;line-height:1.4;transition:background .15s,color .15s;flex-shrink:0;}
-.dl-btn:hover{background:var(--bg3);color:var(--text);}
-.mtx-toggle{display:flex;gap:3px;margin-left:auto;}
-.mtx-btn{background:none;border:1px solid var(--border);border-radius:4px;color:var(--text3);cursor:pointer;font-size:10px;padding:2px 9px;transition:all .15s;line-height:1.5;}
-.mtx-btn:hover{background:var(--bg3);color:var(--text);}
-.mtx-btn.mtx-active{background:var(--accent);color:#fff;border-color:var(--accent);}
-#machineMatrixTable{overflow-x:auto;overflow-y:auto;max-height:300px;}
-#machineMatrixTable table{border-collapse:collapse;font-size:10.5px;white-space:nowrap;}
-#machineMatrixTable th{padding:5px 8px;color:var(--text3);font-weight:600;background:var(--bg2);text-align:center;border-bottom:1px solid var(--border);}
-#machineMatrixTable th.row-hdr{text-align:left;position:sticky;left:0;z-index:2;}
-#machineMatrixTable td{padding:4px 8px;text-align:center;border-bottom:1px solid var(--border);}
-#machineMatrixTable td.row-hdr{text-align:left;font-weight:600;color:var(--text2);background:var(--bg2);position:sticky;left:0;}
 /* KPI tiles */
 .kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
 .kpi-card{border-left:4px solid transparent;}
@@ -86,8 +73,6 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5);cursor:po
 .kpi-value{font-family:var(--mono);font-size:32px;font-weight:500;line-height:1;margin-bottom:2px;}
 .kpi-target{font-family:var(--mono);font-size:12px;margin-top:4px;}
 .kpi-sub{font-size:10px;color:var(--text2);line-height:1.5;}
-.kpi-hist{font-size:10px;color:var(--text3);margin-top:5px;line-height:1.6;}
-.kpi-hist span{color:var(--text2);font-family:var(--mono);font-weight:500;}
 .kpi-good{font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:4px;}
 .kpi-card.t-shift{border-left-color:var(--wf-shift);}
 .kpi-card.t-run{border-left-color:var(--amber);}
@@ -106,7 +91,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5);cursor:po
 .wf-tgt-line{position:absolute;top:0;height:100%;width:2px;background:rgba(255,255,255,0.6);z-index:2;}
 .wf-bar-loss{position:absolute;top:0;height:100%;opacity:0.55;background-image:repeating-linear-gradient(135deg,transparent,transparent 5px,rgba(255,255,255,0.3) 5px,rgba(255,255,255,0.3) 10px);}
 .wf-loss-col{width:84px;flex-shrink:0;display:flex;flex-direction:column;justify-content:center;padding:6px 12px 6px 6px;text-align:right;}
-.wf-loss-badge{font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;display:inline-block;white-space:nowrap;cursor:default;}
+.wf-loss-badge{font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;display:inline-block;white-space:nowrap;}
 .wf-loss-zero{font-size:9px;color:var(--text3);font-family:var(--mono);}
 .wf-step.wf-final{background:rgba(79,142,247,0.05);}
 .wf-step.wf-final .wf-name{font-size:12px;font-weight:700;color:var(--accent);}
@@ -152,9 +137,7 @@ tbody tr:last-child td{border-bottom:none;}
 .mach-tag{font-family:var(--mono);font-size:9px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);padding:1px 4px;border-radius:3px;flex-shrink:0;width:30px;text-align:center;}
 .mach-mini-bg{flex:1;height:7px;background:var(--bg3);border-radius:2px;overflow:hidden;}
 .mach-mini-fill{height:100%;border-radius:2px;opacity:0.75;}
-.mach-mini-pct{font-family:var(--mono);font-size:9px;color:var(--text3);width:58px;text-align:right;flex-shrink:0;}
-.bd-section-hdr{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;padding:4px 0 1px;margin-top:4px;font-weight:600;border-top:1px solid var(--border2);}
-.bd-section-hdr:first-child{margin-top:1px;border-top:none;}
+.mach-mini-pct{font-family:var(--mono);font-size:9px;color:var(--text3);width:32px;text-align:right;flex-shrink:0;}
 .wf-mach-list{padding:3px 14px 5px 165px;}
 .wf-mach-row{display:flex;align-items:center;gap:5px;margin-bottom:2px;}
 .wf-mach-tag{font-family:var(--mono);font-size:9px;color:var(--text3);width:28px;flex-shrink:0;}
@@ -268,8 +251,6 @@ html.light .rm-editable:focus{background:rgba(79,142,247,0.08);}
   margin:10px 0;line-height:1.6;
 }
 .rm-json-key{font-family:var(--mono);font-size:10px;background:var(--bg3);padding:1px 5px;border-radius:3px;color:var(--purple);}
-
-
 </style>
 </head>
 <body>
@@ -312,9 +293,8 @@ html.light .rm-editable:focus{background:rgba(79,142,247,0.08);}
   <div class="controls-row">
     <span class="ctrl-label">View</span>
     <div class="view-tabs">
-      <button class="view-tab active" onclick="switchView('plant',this)">Overview</button>
-      <button class="view-tab" onclick="switchView('machine',this)">Analysis</button>
-      <button class="view-tab" onclick="switchView('matrix',this)">Matrix</button>
+      <button class="view-tab active" onclick="switchView('plant',this)">Overall</button>
+      <button class="view-tab" onclick="switchView('machine',this)">Drilldowns</button>
       <button class="view-tab" onclick="switchView('readme',this)">README</button>
     </div>
     <div class="ctrl-sep"></div>
@@ -341,7 +321,6 @@ html.light .rm-editable:focus{background:rgba(79,142,247,0.08);}
     <span class="ctrl-label">Operator</span>
     <select id="fOperator" onchange="applyFilters()" style="max-width:110px"><option value="all">All operators</option></select>
     <div style="margin-left:auto">
-      <button onclick="downloadFullDump()" title="Download full data dump as Excel" style="margin-right:6px;padding:4px 10px;font-size:11px;border-radius:4px;border:1px solid var(--border);background:var(--panel);color:var(--text);cursor:pointer">&#11015; Full dump</button>
       <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle light/dark theme">☀︎</button>
     </div>
   </div>
@@ -352,23 +331,20 @@ html.light .rm-editable:focus{background:rgba(79,142,247,0.08);}
 <!-- KPI row -->
 <div class="kpi-row">
   <div class="card kpi-card t-shift">
-    <div class="kpi-label" id="k-shift-label">Shift run %</div>
+    <div class="kpi-label">Shift run %</div>
     <div class="kpi-value" id="k-shift" style="color:var(--wf-shift)">—</div>
     <div class="kpi-sub" id="k-shift-sub">machine-slots ran</div>
-    <div class="kpi-hist" id="k-shift-hist"></div>
   </div>
   <div class="card kpi-card t-run">
     <div class="kpi-label">OEE — running machines</div>
     <div class="kpi-value" id="k-run" style="color:var(--amber)">—</div>
     <div class="kpi-target" id="k-run-target" style="color:var(--teal)">—</div>
     <div class="kpi-good" id="k-run-good">—</div>
-    <div class="kpi-hist" id="k-run-hist"></div>
   </div>
   <div class="card kpi-card t-oee">
     <div class="kpi-label">Overall OEE</div>
     <div class="kpi-value" id="k-oee" style="color:var(--accent)">—</div>
     <div class="kpi-sub">OEE running × shift run %</div>
-    <div class="kpi-hist" id="k-oee-hist"></div>
   </div>
 </div>
 
@@ -380,14 +356,12 @@ html.light .rm-editable:focus{background:rgba(79,142,247,0.08);}
     <div class="card" style="grid-column:1">
       <div class="card-title"><span class="dot" style="background:var(--accent)"></span>OEE Waterfall
         <span style="font-size:9px;color:var(--teal);margin-left:6px;font-weight:400">— target OEE</span>
-        <button class="dl-btn" onclick="downloadTableXls('wfDrill','oee_waterfall_drill.xlsx')" title="Download as Excel">↓ xls</button>
       </div>
       <div class="wf-wrap" id="wfPlant"></div>
     </div>
-    <div class="card" id="notRunCard">
+    <div class="card">
       <div class="card-title"><span class="dot" style="background:var(--wf-shift)"></span>Not-run reasons
         <span style="font-size:9px;color:var(--text3);margin-left:4px;font-weight:400">% of total slots</span>
-        <button class="dl-btn" onclick="downloadTableXls('notRunReasons','not_run_reasons.xlsx')" title="Download as Excel">↓ xls</button>
       </div>
       <div id="notRunBarsPlant"></div>
       <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
@@ -403,120 +377,60 @@ html.light .rm-editable:focus{background:rgba(79,142,247,0.08);}
     <div class="card">
       <div class="card-title"><span class="dot" style="background:var(--wf-avail)"></span>Downtime split
         <span style="font-size:9px;color:var(--text3);margin-left:4px;font-weight:400">% of shift hrs</span>
-        <button class="dl-btn" onclick="downloadTableXls('dtSplit','downtime_split.xlsx')" title="Download as Excel">↓ xls</button>
       </div>
       <div id="dtBarsPlant"></div>
       <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;gap:8px" id="dtStats"></div>
     </div>
   </div>
 
+  <!-- Row 2: Machine OEE heatmap | Daily trend -->
+  <div class="row row-2">
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--accent)"></span>Machine OEE (overall)</div>
+      <div style="height:190px"><canvas id="machineOeeBar"></canvas></div>
+      <div class="oee-legend">
+        <div class="oee-legend-item"><div class="oee-legend-dot" style="background:rgba(62,207,142,0.75)"></div>≥ 85%</div>
+        <div class="oee-legend-item"><div class="oee-legend-dot" style="background:rgba(245,158,11,0.75)"></div>70–84%</div>
+        <div class="oee-legend-item"><div class="oee-legend-dot" style="background:rgba(244,63,94,0.75)"></div>&lt; 70%</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--teal)"></span>Daily OEE trend</div>
+      <div style="height:190px"><canvas id="trendLine"></canvas></div>
+    </div>
+  </div>
 
 </div>
 
-<!-- ── DRILLDOWNS TAB ─────────────────────────────────────────────── -->
+<!-- ── MACHINE TAB ───────────────────────────────────────────────── -->
 <div id="view-machine" class="section">
 
-  <!-- Row A: Machine OEE | Loss by machine -->
+  <!-- Row 1: Loss by machine (LHS) | Daily loss composition (RHS) -->
   <div class="row row-2">
     <div class="card">
-      <div class="card-title"><span class="dot" style="background:var(--accent)"></span>Machine OEE<button class="dl-btn" onclick="downloadExcel('machineOeeBar','machine_oee.xlsx')" title="Download as Excel">↓ xls</button></div>
-      <div style="height:200px"><canvas id="machineOeeBar"></canvas></div>
-      <div class="oee-legend">
-        <div class="oee-legend-item"><div class="oee-legend-dot" style="background:rgba(62,207,142,0.75)"></div>Top 33%</div>
-        <div class="oee-legend-item"><div class="oee-legend-dot" style="background:rgba(245,158,11,0.75)"></div>Mid 33%</div>
-        <div class="oee-legend-item"><div class="oee-legend-dot" style="background:rgba(244,63,94,0.75)"></div>Bottom 33%</div>
-      </div>
+      <div class="card-title"><span class="dot" style="background:var(--amber)"></span>Loss composition by machine</div>
+      <div style="height:220px"><canvas id="lossComposition"></canvas></div>
     </div>
     <div class="card">
-      <div class="card-title"><span class="dot" style="background:var(--amber)"></span>Loss composition by machine<button class="dl-btn" onclick="downloadExcel('lossComposition','loss_by_machine.xlsx')" title="Download as Excel">↓ xls</button></div>
-      <div style="height:200px"><canvas id="lossComposition"></canvas></div>
+      <div class="card-title"><span class="dot" style="background:var(--teal)"></span>Daily loss composition</div>
+      <div style="height:220px"><canvas id="dailyLossBar"></canvas></div>
     </div>
   </div>
 
-  <!-- Row B: OEE Trend | Loss Trend -->
-  <div class="row row-2">
-    <div class="card">
-      <div class="card-title"><span class="dot" style="background:var(--teal)"></span>OEE Trend<span id="trendToggle" style="margin-left:6px;display:inline-flex;gap:3px"><button class="mtx-btn mtx-active" onclick="switchTrendView('date',this)">Date</button><button class="mtx-btn" onclick="switchTrendView('day',this)">Day</button><button class="mtx-btn" onclick="switchTrendView('week',this)">Week</button><button class="mtx-btn" onclick="switchTrendView('shift',this)">Shift</button></span><button class="dl-btn" onclick="downloadExcel('trendLine','daily_oee_trend.xlsx')" title="Download as Excel">↓ xls</button></div>
-      <div style="height:200px"><canvas id="trendLine"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="card-title"><span class="dot" style="background:var(--teal)"></span>Loss Trend<span id="lossTrendToggle" style="margin-left:6px;display:inline-flex;gap:3px"><button class="mtx-btn mtx-active" onclick="switchLossView('date',this)">Date</button><button class="mtx-btn" onclick="switchLossView('day',this)">Day</button><button class="mtx-btn" onclick="switchLossView('week',this)">Week</button><button class="mtx-btn" onclick="switchLossView('shift',this)">Shift</button></span><button class="dl-btn" onclick="downloadExcel('dailyLossBar','daily_loss.xlsx')" title="Download as Excel">↓ xls</button></div>
-      <div style="height:200px"><canvas id="dailyLossBar"></canvas></div>
-    </div>
-  </div>
-
-  <!-- Row C: OEE by Product | Loss by Product -->
-  <div class="row row-2">
-    <div class="card">
-      <div class="card-title"><span class="dot" style="background:var(--purple)"></span>OEE by Product
-        <span style="font-size:9px;color:var(--text3);margin-left:4px;font-weight:400">running machines only · percentile coloured</span>
-        <button class="dl-btn" onclick="downloadExcel('productOeeBar','product_oee.xlsx')" title="Download as Excel">↓ xls</button>
-      </div>
-      <div style="height:200px"><canvas id="productOeeBar"></canvas></div>
-      <div class="oee-legend">
-        <div class="oee-legend-item"><div class="oee-legend-dot" style="background:rgba(62,207,142,0.75)"></div>Top 33%</div>
-        <div class="oee-legend-item"><div class="oee-legend-dot" style="background:rgba(245,158,11,0.75)"></div>Mid 33%</div>
-        <div class="oee-legend-item"><div class="oee-legend-dot" style="background:rgba(244,63,94,0.75)"></div>Bottom 33%</div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title"><span class="dot" style="background:var(--purple)"></span>Loss composition by Product
-        <span style="font-size:9px;color:var(--text3);margin-left:4px;font-weight:400">avail · cav · speed · quality</span>
-        <button class="dl-btn" onclick="downloadExcel('productLossBar','product_loss.xlsx')" title="Download as Excel">↓ xls</button>
-      </div>
-      <div style="height:200px"><canvas id="productLossBar"></canvas></div>
-    </div>
-  </div>
-
-  <!-- Row D: OEE by Operator | Loss by Operator -->
-  <div class="row row-2">
-    <div class="card" id="operatorOeeCard">
-      <div class="card-title"><span class="dot" style="background:var(--teal)"></span>OEE by Operator
-        <span style="font-size:9px;color:var(--text3);margin-left:4px;font-weight:400">running machines only · percentile coloured</span>
-        <button class="dl-btn" onclick="downloadExcel('operatorOeeBar','operator_oee.xlsx')" title="Download as Excel">↓ xls</button>
-      </div>
-      <div style="height:200px"><canvas id="operatorOeeBar"></canvas></div>
-      <div class="oee-legend">
-        <div class="oee-legend-item"><div class="oee-legend-dot" style="background:rgba(62,207,142,0.75)"></div>Top 33%</div>
-        <div class="oee-legend-item"><div class="oee-legend-dot" style="background:rgba(245,158,11,0.75)"></div>Mid 33%</div>
-        <div class="oee-legend-item"><div class="oee-legend-dot" style="background:rgba(244,63,94,0.75)"></div>Bottom 33%</div>
-      </div>
-    </div>
-    <div class="card" id="operatorLossCard">
-      <div class="card-title"><span class="dot" style="background:var(--teal)"></span>Loss composition by Operator
-        <span style="font-size:9px;color:var(--text3);margin-left:4px;font-weight:400">avail · cav · speed · quality</span>
-        <button class="dl-btn" onclick="downloadExcel('operatorLossBar','operator_loss.xlsx')" title="Download as Excel">↓ xls</button>
-      </div>
-      <div style="height:200px"><canvas id="operatorLossBar"></canvas></div>
-    </div>
-  </div>
-
-</div>
-
-<!-- ── DETAIL TAB ─────────────────────────────────────────────────── -->
-<div id="view-matrix" class="section">
-
-  <!-- Machine OEE Matrix -->
-  <div class="card" id="machineMatrixCard">
-    <div class="card-title">
-      <span class="dot" style="background:var(--accent)"></span>Machine OEE Matrix
-      <span id="matrixSubtitle" style="font-size:9px;color:var(--text3);margin-left:4px;font-weight:400">Overall OEE (date/week) · OEE running (operator/product) · percentile coloured</span>
-      <div class="mtx-toggle">
-        <button class="mtx-btn mtx-active" onclick="switchMatrix('date',this)">By Date</button>
-        <button class="mtx-btn" onclick="switchMatrix('week',this)">By Week</button>
-        <button class="mtx-btn" onclick="switchMatrix('day',this)">By Day</button>
-        <button class="mtx-btn" onclick="switchMatrix('shift',this)">By Shift</button>
-        <button class="mtx-btn" onclick="switchMatrix('operator',this)">By Operator</button>
-        <button class="mtx-btn" onclick="switchMatrix('product',this)">By Product</button>
-      </div>
-      <button class="dl-btn" style="margin-left:6px" onclick="downloadExcel('machineMatrix','machine_oee_matrix.xlsx')" title="Download matrix as Excel">↓ xls</button>
-    </div>
-    <div id="machineMatrixTable"><div style="color:var(--text3);font-size:11px;padding:8px">Load data to view matrix</div></div>
-  </div>
-
-  <!-- Machine × Shift detail -->
+  <!-- Row 2: Shift A vs B comparison -->
   <div class="card">
-    <div class="card-title"><span class="dot" style="background:var(--purple)"></span>Machine × Shift detail<button class="dl-btn" onclick="downloadTableXls('machineDetail','machine_detail.xlsx')" title="Download as Excel">↓ xls</button></div>
+    <div class="card-title"><span class="dot" style="background:var(--teal)"></span>Shift A vs Shift B</div>
+    <div class="tbl-wrap" style="max-height:220px">
+      <table>
+        <thead><tr><th>Metric</th><th>Shift A</th><th>Shift B</th><th>Combined</th></tr></thead>
+        <tbody id="shiftCompareBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Row 3: Detail table -->
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--purple)"></span>Machine × Shift detail</div>
     <div class="tbl-wrap">
       <table>
         <thead><tr>
@@ -566,154 +480,9 @@ html.light .rm-editable:focus{background:rgba(79,142,247,0.08);}
 <script>
 let DB=null;
 const charts={};
-const chartData={};
-function setChartData(id,obj){chartData[id]=obj;}
-function downloadExcel(id,fname){
-  const d=chartData[id];
-  if(!d){alert('No data yet — apply filters first');return;}
-  const wb=XLSX.utils.book_new();
-  const header=[d.xLabel||'Label',...d.series.map(s=>s.name)];
-  const rows=d.labels.map((lbl,i)=>[lbl,...d.series.map(s=>s.data[i]!==null&&s.data[i]!==undefined?s.data[i]:'')]);
-  const ws=XLSX.utils.aoa_to_sheet([header,...rows]);
-  ws['!cols']=header.map(h=>({wch:Math.max(String(h).length+2,12)}));
-  XLSX.utils.book_append_sheet(wb,ws,'Chart Data');
-  if(d.extraSheets){
-    d.extraSheets.forEach(sheet=>{
-      if(!sheet.rows.length)return;
-      const ws2=XLSX.utils.aoa_to_sheet([sheet.headers,...sheet.rows]);
-      ws2['!cols']=sheet.headers.map(h=>({wch:Math.max(String(h).length+2,14)}));
-      XLSX.utils.book_append_sheet(wb,ws2,sheet.name);
-    });
-  }
-  XLSX.writeFile(wb,fname);
-}
-// Table data store + download
-const tableData={};
-function setTableData(id,obj){tableData[id]=obj;}
-function downloadTableXls(id,fname){
-  const d=tableData[id];
-  if(!d){alert('No data yet — apply filters first');return;}
-  const wb=XLSX.utils.book_new();
-  d.sheets.forEach(s=>{
-    const ws=XLSX.utils.aoa_to_sheet([s.headers,...s.rows]);
-    ws['!cols']=s.headers.map(h=>({wch:Math.max(String(h).length+2,12)}));
-    XLSX.utils.book_append_sheet(wb,ws,s.name);
-  });
-  XLSX.writeFile(wb,fname);
-}
-function downloadFullDump(){
-    const from=document.getElementById('fDateFrom').value;
-    const to=document.getElementById('fDateTo').value;
-    const shift=document.getElementById('fShift').value;
-    const machine=document.getElementById('fMachine').value;
-    const inRange=d=>(!from||d>=from)&&(!to||d<=to);
-
-    // All slots sheet
-    const nrMap={};
-    (DB.not_run||[]).forEach(r=>{
-      nrMap[r.date+'|'+r.shift+'|'+r.machine_no]=r.reason||'';
-    });
-    const slotRows=(DB.all_slots||[])
-      .filter(s=>inRange(s.date)&&(shift==='all'||s.shift===shift)&&(machine==='all'||String(s.machine_no)===String(machine)))
-      .sort((a,b)=>a.date.localeCompare(b.date)||a.shift.localeCompare(b.shift)||(a.machine_no-b.machine_no))
-      .map(s=>{
-        const rf=s.ran_flag||'Y';
-        const reason=rf!=='Y'?(nrMap[s.date+'|'+s.shift+'|'+s.machine_no]||''):'';
-        return[s.date,getDateDay(s.date),s.shift,s.machine_no,rf,s.hours_run!=null?s.hours_run:12,reason];
-      });
-
-    // OEE tracker sheet
-    const recs=(DB.records||[]).filter(r=>inRange(r.date)&&(shift==='all'||r.shift===shift)&&(machine==='all'||String(r.machine_no)===String(machine)));
-    const oeeRows=recs.map(r=>[
-      r.date,r.shift,r.machine_no,r.operator_name||'',
-      r.product_type,r.product_name,r.mould_no,
-      r.duration_hrs,r.run_hrs,
-      r.total_cavities,r.running_cavities,
-      r.target_pcs,r.actual_good_pcs,r.total_rej_pcs,
-      r.rej_label_kg||0,r.rej_plain_kg||0,r.rej_trial_kg||0,
-      r.dt_label||0,r.dt_colour||0,r.dt_mould||0,
-      r.dt_startup||0,
-      r.dt_label_unavail||0,r.dt_rm_pm_unavail||0,r.dt_peel_off||0,
-      r.dt_proc_fail||0,r.dt_mach_bkdn||0,r.dt_mould_bkdn||0,
-      r.dt_robot_bkdn||0,r.dt_manpower||0,r.dt_power_cut||0,r.dt_other||0,
-    ]);
-
-    const wb=XLSX.utils.book_new();
-    const ws1=XLSX.utils.aoa_to_sheet([
-      ['Date','Day','Shift','Machine','Ran?','Hours Run','Reason'],
-      ...slotRows
-    ]);
-    ws1['!cols']=[{wch:12},{wch:10},{wch:8},{wch:10},{wch:6},{wch:10},{wch:55}];
-    XLSX.utils.book_append_sheet(wb,ws1,'All slots');
-
-    const oeeHdrs=['Date','Shift','Machine','Operator','Product Type','Product Name','Mould No',
-      'Duration Hrs','Run Hrs','Total Cav','Running Cav',
-      'Target Pcs','Actual Good Pcs','Total Rej Pcs',
-      'Rej Label kg','Rej Plain kg','Rej Trial kg',
-      'DT Label','DT Colour','DT Mould','DT Startup',
-      'DT Label Unavail','DT RM/PM Unavail','DT Peel-off',
-      'DT Proc Fail','DT Mach Bkdn','DT Mould Bkdn',
-      'DT Robot Bkdn','DT Manpower','DT Power Cut','DT Other'];
-    const ws2=XLSX.utils.aoa_to_sheet([oeeHdrs,...oeeRows]);
-    ws2['!cols']=oeeHdrs.map(h=>({wch:Math.max(h.length+2,12)}));
-    XLSX.utils.book_append_sheet(wb,ws2,'OEE tracker');
-
-    const dateStr=new Date().toISOString().slice(0,10);
-    XLSX.writeFile(wb,`OEE_Full_Dump_${dateStr}.xlsx`);
-  }
-
-// ── External HTML tooltip (avoids Canvas clipping) ─────────────
-const _extTT=(()=>{
-  const d=document.createElement('div');
-  d.id='ext-chart-tooltip';
-  Object.assign(d.style,{position:'fixed',zIndex:'9999',pointerEvents:'none',opacity:'0',
-    background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:'7px',
-    padding:'9px 12px',fontSize:'11px',lineHeight:'1.65',color:'var(--text)',
-    boxShadow:'0 6px 20px rgba(0,0,0,.6)',transition:'opacity .1s',maxWidth:'320px',
-    whiteSpace:'nowrap',fontFamily:'DM Sans,sans-serif'});
-  document.body.appendChild(d);
-  return d;
-})();
-function extTooltip(context){
-  const tt=context.tooltip;
-  if(tt.opacity===0){_extTT.style.opacity='0';return;}
-  let html='';
-  if(tt.title&&tt.title.length){
-    html+=`<div style="font-weight:600;color:var(--text2);margin-bottom:5px">${tt.title[0]}</div>`;
-  }
-  tt.dataPoints.forEach(dp=>{
-    const col=typeof dp.dataset.borderColor==='string'?dp.dataset.borderColor:'#888';
-    html+=`<div style="display:flex;align-items:center;gap:6px;margin:2px 0"><span style="width:8px;height:8px;border-radius:2px;background:${col};flex-shrink:0;display:inline-block"></span><span style="color:var(--text2)">${dp.dataset.label}:</span><span style="font-family:var(--mono)">${dp.raw}%</span></div>`;
-  });
-  // Total loss row — only for stacked loss composition charts
-  const isStacked=tt.dataPoints.some(dp=>dp.dataset.stack);
-  if(isStacked&&tt.dataPoints.length>1){
-    const total=tt.dataPoints.reduce((s,dp)=>s+(dp.raw||0),0);
-    if(total>0.05){
-      html+=`<div style="border-top:1px solid var(--border2);margin-top:5px;padding-top:4px;display:flex;align-items:center;gap:6px"><span style="width:8px;flex-shrink:0"></span><span style="color:var(--text2);font-weight:600">Total loss:</span><span style="font-family:var(--mono);font-weight:700">${total.toFixed(1)}%</span></div>`;
-    }
-  }
-  if(tt.afterBody&&tt.afterBody.length){
-    tt.afterBody.forEach(line=>{
-      if(!line){html+='<div style="height:4px"></div>';}
-      else if(!line.startsWith('  ')){html+=`<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-top:5px">${line}</div>`;}
-      else{html+=`<div style="font-family:var(--mono);font-size:10.5px;color:var(--text2);padding-left:2px">${line.trim()}</div>`;}
-    });
-  }
-  _extTT.innerHTML=html;
-  _extTT.style.opacity='1';
-  const cr=context.chart.canvas.getBoundingClientRect();
-  let x=cr.left+tt.caretX+14,y=cr.top+tt.caretY-10;
-  _extTT.style.left=x+'px';_extTT.style.top=y+'px';
-  requestAnimationFrame(()=>{
-    const r=_extTT.getBoundingClientRect();
-    if(r.right>window.innerWidth-8)_extTT.style.left=(cr.left+tt.caretX-r.width-14)+'px';
-    if(r.bottom>window.innerHeight-8)_extTT.style.top=(window.innerHeight-r.height-8)+'px';
-  });
-}
-const DT_KEYS  =['dt_label','dt_colour','dt_mould','dt_startup','dt_label_unavail','dt_rm_pm_unavail','dt_peel_off','dt_proc_fail','dt_mach_bkdn','dt_mould_bkdn','dt_robot_bkdn','dt_manpower','dt_power_cut','dt_other'];
-const DT_LABELS=['Label change','Colour change','Mould change','Startup/setup','Label unavail.','RM/PM unavail.','Label peel-off','Process failure','Mach. breakdown','Mould breakdown','Robot breakdown','Manpower unavail.','Power cut','Other'];
-const DT_CAT={'Label change':'planned','Colour change':'planned','Mould change':'planned','Startup/setup':'planned','Label unavail.':'unplanned','RM/PM unavail.':'unplanned','Label peel-off':'unplanned','Process failure':'unplanned','Mach. breakdown':'unplanned','Mould breakdown':'unplanned','Robot breakdown':'unplanned','Manpower unavail.':'unplanned','Power cut':'unplanned','Other':'other'};
+const DT_KEYS  =['dt_label','dt_colour','dt_mould','dt_label_unavail','dt_proc_fail','dt_mach_bkdn','dt_mould_bkdn','dt_other'];
+const DT_LABELS=['Label change','Colour change','Mould change','Label unavail.','Process failure','Mach. breakdown','Mould breakdown','Other'];
+const DT_CAT={'Label change':'planned','Colour change':'planned','Mould change':'planned','Label unavail.':'unplanned','Process failure':'unplanned','Mach. breakdown':'unplanned','Mould breakdown':'unplanned','Other':'other'};
 const CAT_COLOR={planned:'var(--planned)',unplanned:'var(--unplanned)',other:'var(--other)'};
 const CAT_LABEL={planned:'Planned',unplanned:'Unplanned',other:'Other'};
 const WF_COLORS={start:'var(--wf-start)',shift:'var(--wf-shift)',avail:'var(--wf-avail)',cav:'var(--wf-cav)',speed:'var(--wf-speed)',quality:'var(--wf-quality)'};
@@ -731,21 +500,20 @@ function categoriseNotRun(reason){
 // ═══════════════════════════════════════════════
 function compute(records,not_run_list,all_slots){
   if(!records.length)return null;
-  // Duration-weighted average approach — each metric is the weighted avg of per-row
-  // rates, weight = duration_hrs, so every machine-hour counts equally regardless of
-  // product type (containers vs lids vs spoons have very different cycle times/cavities).
+  // Weighted-average approach — each metric is wtd avg of per-row rates
+  // weight = duration_hrs so every machine-hour counts equally
+  // regardless of product type (containers vs lids vs spoons).
   // Speed is residual: avail × cav × speed × qual = oee_running always.
   const s=fn=>records.reduce((a,r)=>a+(fn(r)||0),0);
   const totalDurW=s(r=>r.duration_hrs)||1;
   const wt=(r,v)=>v*(r.duration_hrs||0);
-  // Raw sums (for display and downtime breakdown)
-  const total_shift_hrs=s(r=>r.duration_hrs),total_run_hrs=s(r=>r.run_hrs);
-  const total_target=s(r=>r.target_pcs),total_actual=s(r=>r.actual_good_pcs),total_rej=s(r=>r.total_rej_pcs);
-  // Metrics — duration-weighted averages
   const avail_loss=s(r=>wt(r,r.duration_hrs?(r.duration_hrs-r.run_hrs)/r.duration_hrs:0))/totalDurW;
   const cav_loss=s(r=>wt(r,r.total_cavities?(r.total_cavities-r.running_cavities)/r.total_cavities:0))/totalDurW;
   const quality_loss=s(r=>wt(r,(r.total_rej_pcs+r.actual_good_pcs)>0?r.total_rej_pcs/(r.total_rej_pcs+r.actual_good_pcs):0))/totalDurW;
   const oee_running=s(r=>wt(r,r.target_pcs?r.actual_good_pcs/r.target_pcs:0))/totalDurW;
+  // Raw sums for display (good pcs, target pcs)
+  const total_shift_hrs=s(r=>r.duration_hrs),total_run_hrs=s(r=>r.run_hrs);
+  const total_target=s(r=>r.target_pcs),total_actual=s(r=>r.actual_good_pcs),total_rej=s(r=>r.total_rej_pcs);
   // ran   = unique (date,shift,machine) with target>0 in OEE tracker = records
   // total = all slots from Shift tracker = all_slots
   // not run count = total - ran (delta)
@@ -756,12 +524,7 @@ function compute(records,not_run_list,all_slots){
   all_slots.forEach(s=>seen_all.add(s.date+s.shift+s.machine_no));
   const total_slots=seen_all.size;
   const not_ran_cnt=total_slots-ran_cnt;
-  // Hours-based shift run %: Y=12hrs, N=0hrs, P=hours_run
-  const total_sched_hrs=total_slots*12;
-  const total_ran_hrs_slots=all_slots.reduce((a,s)=>a+(s.hours_run!=null?s.hours_run:12),0);
-  const shift_run_pct=total_sched_hrs>0?total_ran_hrs_slots/total_sched_hrs:1;
-  // Pro-rata slot count: Y=1.0, P=hours_run/12, N=0 (displayed in top tile sub-label)
-  const pro_rata_ran=total_ran_hrs_slots/12;
+  const shift_run_pct=total_slots?ran_cnt/total_slots:1;
   const avail_rate=1-avail_loss,cav_rate=1-cav_loss,quality_rate=1-quality_loss;
   // Speed loss: residual — guarantees avail×cav×speed×qual = oee_running
   const denom_spd=avail_rate*cav_rate*quality_rate;
@@ -777,8 +540,8 @@ function compute(records,not_run_list,all_slots){
   // Planned downtime, planned not-run, quality, other unchanged
 
   // Availability: halve unplanned DT categories
-  const unplanned_dt_keys=['dt_label_unavail','dt_rm_pm_unavail','dt_peel_off','dt_proc_fail','dt_mach_bkdn','dt_mould_bkdn','dt_robot_bkdn','dt_manpower','dt_power_cut'];
-  const planned_dt_keys  =['dt_label','dt_colour','dt_mould','dt_startup'];
+  const unplanned_dt_keys=['dt_label_unavail','dt_proc_fail','dt_mach_bkdn','dt_mould_bkdn'];
+  const planned_dt_keys  =['dt_label','dt_colour','dt_mould'];
   const other_dt_keys    =['dt_other'];
   const total_unplanned_dt=s(r=>unplanned_dt_keys.reduce((a,k)=>a+(r[k]||0),0));
   const total_planned_dt  =s(r=>planned_dt_keys.reduce((a,k)=>a+(r[k]||0),0));
@@ -805,19 +568,12 @@ function compute(records,not_run_list,all_slots){
   const dt_breakdown={};
   DT_KEYS.forEach((k,i)=>{
     const hrs=s(r=>r[k]);
-    dt_breakdown[DT_LABELS[i]]={pct:total_shift_hrs?(hrs/total_shift_hrs)*shift_run_pct:0,hrs};
+    dt_breakdown[DT_LABELS[i]]={pct:total_shift_hrs?hrs/total_shift_hrs:0,hrs};
   });
-  // Reason breakdown by idle hours (N→12hrs, P→12−hours_run) ÷ total scheduled hrs
   const reason_counts={};
-  const reason_idle_hrs={};
-  not_run_list.forEach(r=>{
-    const key=r.reason||'Missing reason code';
-    const idle=12-(r.hours_run||0);
-    reason_counts[key]=(reason_counts[key]||0)+1;
-    reason_idle_hrs[key]=(reason_idle_hrs[key]||0)+idle;
-  });
+  not_run_list.forEach(r=>{const key=r.reason||'Missing reason code';reason_counts[key]=(reason_counts[key]||0)+1;});
   const reason_pcts={};
-  Object.entries(reason_idle_hrs).forEach(([k,v])=>reason_pcts[k]=total_sched_hrs>0?v/total_sched_hrs:0);
+  Object.entries(reason_counts).forEach(([k,v])=>reason_pcts[k]=total_slots?v/total_slots:0);
 
   // Per-machine downtime for avail waterfall breakdown
   const avail_mach=[];
@@ -829,11 +585,11 @@ function compute(records,not_run_list,all_slots){
   avail_mach.sort((a,b)=>b.dt_hrs-a.dt_hrs);
 
   return {
-    total_shift_hrs,total_run_hrs,total_target,total_actual,total_rej,total_sched_hrs,
+    total_shift_hrs,total_run_hrs,total_target,total_actual,total_rej,
     avail_loss,cav_loss,speed_loss,quality_loss,
     oee_running,shift_run_pct,overall_oee,
     avail_rate,cav_rate,speed_rate,quality_rate,
-    ran_cnt,not_ran_cnt,total_slots,pro_rata_ran,
+    ran_cnt,not_ran_cnt,total_slots,
     dt_breakdown,reason_pcts,
     tgt_oee_running,tgt_overall_oee,tgt_avail_loss,tgt_cav_loss,tgt_speed_loss,tgt_shift_run_pct,
     not_run_list:not_run_list, avail_mach,
@@ -884,61 +640,24 @@ function cLegend(){return document.documentElement.classList.contains('light')?'
 // ═══════════════════════════════════════════════
 // WATERFALL with target line
 // ═══════════════════════════════════════════════
-
-function showWfTip(evt,key){
-  const d=_wfDrillData[key];if(!d)return;
-  const titles={cav:'Cavity loss',speed:'Speed loss',quality:'Quality loss'};
-  let html=`<div style="font-weight:600;color:var(--text2);margin-bottom:6px">${titles[key]||key} — ${d.pct}%</div>`;
-  if(d.machines&&d.machines.length){
-    html+=`<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px">Top machines</div>`;
-    d.machines.forEach(([lbl,v,s])=>{
-      html+=`<div style="display:flex;gap:6px;align-items:center;margin:2px 0"><span style="color:var(--text3);min-width:36px">${lbl}</span><span style="font-family:var(--mono);min-width:38px">${v}%</span><span style="color:var(--text3);font-size:10px">${s} shift${s!==1?'s':''}</span></div>`;
-    });
-  }
-  if(d.products&&d.products.length){
-    html+=`<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-top:6px;margin-bottom:3px">Top products</div>`;
-    d.products.forEach(([lbl,v,s])=>{
-      const short=lbl.length>26?lbl.slice(0,24)+'…':lbl;
-      html+=`<div style="display:flex;gap:6px;align-items:center;margin:2px 0"><span style="color:var(--text3);min-width:150px">${short}:</span><span style="font-family:var(--mono);min-width:38px">${v}%</span><span style="color:var(--text3);font-size:10px">${s} shift${s!==1?'s':''}</span></div>`;
-    });
-  }
-  _extTT.innerHTML=html;_extTT.style.opacity='1';
-  const x=evt.clientX+14,y=evt.clientY-10;
-  _extTT.style.left=x+'px';_extTT.style.top=y+'px';
-  requestAnimationFrame(()=>{
-    const r=_extTT.getBoundingClientRect();
-    if(r.right>window.innerWidth-8)_extTT.style.left=(evt.clientX-r.width-14)+'px';
-    if(r.bottom>window.innerHeight-8)_extTT.style.top=(window.innerHeight-r.height-8)+'px';
-  });
-}
-let _wfDrillData={};
-
-function renderWaterfall(id,d,opts){
-  opts=opts||{};
-  // When shift is hidden (product/type/operator filter active), sr=1 so
-  // downstream step values (avail, cav, etc.) are unaffected by shift run.
-  const sr=opts.hideShift?1:d.shift_run_pct;
-  const av=d.avail_rate,cv=d.cav_rate,sp=d.speed_rate;
-  let steps=[
+function renderWaterfall(id,d){
+  const sr=d.shift_run_pct,av=d.avail_rate,cv=d.cav_rate,sp=d.speed_rate;
+  const steps=[
     {key:'start',label:'Theoretical max',note:'100% baseline',val:1,loss:null,tgt:1,color:WF_COLORS.start},
     {key:'shift',label:'Shift run %',note:`${d.ran_cnt}/${d.total_slots} slots ran`,val:sr,loss:1-sr,tgt:d.tgt_shift_run_pct||sr,color:WF_COLORS.shift},
     {key:'avail',label:'Availability',note:`${pct(d.avail_loss)} downtime`,val:sr*av,loss:sr*(1-av),tgt:sr*(1-d.tgt_avail_loss),color:WF_COLORS.avail},
     {key:'cav',label:'Cavity perf.',note:`${pct(d.cav_loss)} fewer cavities`,val:sr*av*cv,loss:sr*av*(1-cv),tgt:sr*(1-d.tgt_avail_loss)*(1-d.tgt_cav_loss),color:WF_COLORS.cav},
     {key:'speed',label:'Speed perf.',note:`${pct(d.speed_loss)} residual`,val:sr*av*cv*sp,loss:sr*av*cv*(1-sp),tgt:sr*(1-d.tgt_avail_loss)*(1-d.tgt_cav_loss)*(1-d.tgt_speed_loss),color:WF_COLORS.speed},
     {key:'quality',label:'Quality',note:`${pct(d.quality_loss)} rejection`,val:d.overall_oee,loss:sr*av*cv*sp*(1-d.quality_rate),tgt:d.tgt_overall_oee,color:WF_COLORS.quality},
-    {key:'final',label:'OEE',note:`target: ${pct(d.tgt_overall_oee)} *`,val:d.overall_oee,loss:null,tgt:d.tgt_overall_oee,color:WF_COLORS.start,isFinal:true},
+    {key:'final',label:'Overall OEE',note:`target: ${pct(d.tgt_overall_oee)} *`,val:d.overall_oee,loss:null,tgt:d.tgt_overall_oee,color:WF_COLORS.start,isFinal:true},
   ];
-  if(opts.hideShift) steps=steps.filter(s=>s.key!=='shift');
   document.getElementById(id).innerHTML=steps.map((s,i)=>{
     const lossW=s.loss?s.loss*100:0;
     const remainW=s.val*100;
     const tgtPct=s.tgt*100;
     let badge='';
-    const hasDrill=opts.drillData&&(s.key==='cav'||s.key==='speed'||s.key==='quality');
-    if(s.loss!==null&&s.loss>0.0005){
-      const hoverAttrs=hasDrill?` onmouseover="showWfTip(event,'${s.key}')" onmouseout="hideMatrixTip()" style="background:${s.color}22;color:${s.color};cursor:pointer"`:`style="background:${s.color}22;color:${s.color}"`;
-      badge=`<span class="wf-loss-badge" ${hoverAttrs}>–${pct(s.loss)}${hasDrill?' ▾':''}</span>`;
-    } else if(!s.isFinal&&s.loss!==null) badge=`<span class="wf-loss-zero">no loss</span>`;
+    if(s.loss!==null&&s.loss>0.0005) badge=`<span class="wf-loss-badge" style="background:${s.color}22;color:${s.color}">–${pct(s.loss)}</span>`;
+    else if(!s.isFinal&&s.loss!==null) badge=`<span class="wf-loss-zero">no loss</span>`;
     const tgtLine=tgtPct>remainW+0.5?`<div class="wf-tgt-line" style="left:${tgtPct}%" title="Target: ${pct(s.tgt)}"></div>`:'';
     return`<div class="wf-step${s.isFinal?' wf-final':''}">
       <div class="wf-label-col">
@@ -962,19 +681,6 @@ function renderWaterfall(id,d,opts){
 // ═══════════════════════════════════════════════
 // GROUPED BARS
 // ═══════════════════════════════════════════════
-function breakdownSectionHtml(map,color,unit,labelFmt,limit,tagWidth){
-  const entries=Object.entries(map).map(([k,v])=>({k,v})).sort((a,b)=>b.v-a.v).slice(0,limit||5);
-  if(!entries.length) return '';
-  const maxV=entries[0].v;
-  const fmtV=v=>unit==='slots'?Math.round(v)+' shifts':v.toFixed(1)+' hrs';
-  const w=tagWidth||30;
-  return entries.map(e=>`<div class="mach-row">
-    <div class="mach-tag" style="width:${w}px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e.k}">${labelFmt?labelFmt(e.k):e.k}</div>
-    <div class="mach-mini-bg"><div class="mach-mini-fill" style="width:${maxV>0?e.v/maxV*100:0}%;background:${color}"></div></div>
-    <div class="mach-mini-pct">${fmtV(e.v)}</div>
-  </div>`).join('');
-}
-
 function machineBreakdownHtml(machMap, color){
   // machMap: {machine_no: count_or_hrs} — top 4 by value
   const entries=Object.entries(machMap).map(([m,v])=>({m,v})).sort((a,b)=>b.v-a.v).slice(0,5);
@@ -1006,19 +712,14 @@ function renderGroupedBars(containerId,entries,labelWidth){
     html+=`<div class="group-label"><span class="gl-dot" style="background:${CAT_COLOR[cat]}"></span>${CAT_LABEL[cat]} — ${pct(catTotals[cat])}</div>`;
     groups[cat].forEach(e=>{
       const barW=grandTotal>0?Math.round(e.pct/grandTotal*100):0;
-      const bdSects=[];
-      if(e.machMap&&Object.keys(e.machMap).length>0) bdSects.push({hdr:'By Machine',map:e.machMap,unit:e.unit||'slots',fmt:k=>`M${k}`,w:30});
-      if(e.dateMap&&Object.keys(e.dateMap).length>0) bdSects.push({hdr:'By Date',map:e.dateMap,unit:'slots',fmt:k=>{const p=k.split('-');return p[2]+'/'+p[1];},w:34,sort:'val'});
-      if(e.dayMap&&Object.keys(e.dayMap).length>0) bdSects.push({hdr:'By Day',map:e.dayMap,unit:'slots',fmt:k=>k,w:28});
-      if(e.shiftMap&&Object.keys(e.shiftMap).length>0) bdSects.push({hdr:'By Shift',map:e.shiftMap,unit:'slots',fmt:k=>k,w:20});
-      if(e.prodMap&&Object.keys(e.prodMap).length>0) bdSects.push({hdr:'By Product',map:e.prodMap,unit:'hrs',fmt:k=>k.length>16?k.slice(0,14)+'…':k,w:72});
-      const hasBd=bdSects.length>0;
-      html+=`<div class="stacked-bar-row" onclick="toggleBreakdown(this)" title="${hasBd?'Click for breakdown':''}">
-        <div class="stacked-bar-label" style="flex:0 0 ${labelWidth||170}px" title="${e.label}">${e.label}${hasBd?` <span style="font-size:8px;color:var(--text3)">▾</span>`:''}</div>
+      const hasMach=e.machMap&&Object.keys(e.machMap).length>0;
+      const uid='bd_'+containerId+'_'+Math.random().toString(36).slice(2,7);
+      html+=`<div class="stacked-bar-row" onclick="toggleBreakdown(this)" title="${hasMach?'Click to see top machines':''}">
+        <div class="stacked-bar-label" style="flex:0 0 ${labelWidth||170}px">${e.label}${hasMach?` <span style="font-size:8px;color:var(--text3)">▾</span>`:''}</div>
         <div class="stacked-bar-bg"><div class="stacked-bar-fill" style="width:${barW}%;background:${CAT_COLOR[cat]}"></div></div>
         <div class="stacked-bar-pct">${pct(e.pct)}</div>
       </div>
-      ${hasBd?`<div class="mach-breakdown">${bdSects.map(s=>`${bdSects.length>1?`<div class="bd-section-hdr">${s.hdr}</div>`:''}${breakdownSectionHtml(s.map,CAT_COLOR[cat],s.unit,s.fmt,5,s.w)}`).join('')}</div>`:''}`;
+      ${hasMach?`<div class="mach-breakdown">${machineBreakdownHtml(e.machMap,CAT_COLOR[cat])}</div>`:''}`;
     });
   });
   html+=`<div class="stacked-total-row">
@@ -1032,39 +733,26 @@ function renderGroupedBars(containerId,entries,labelWidth){
 }
 
 function buildNotRunEntries(reason_pcts, not_run){
-  const machByReason={},dayByReason={},shiftByReason={},dateByReason={};
+  // Build machine breakdown map per reason
+  const machByReason={};
   (not_run||[]).forEach(r=>{
     const key=r.reason||'Missing reason code';
     if(!machByReason[key]) machByReason[key]={};
     machByReason[key][r.machine_no]=(machByReason[key][r.machine_no]||0)+1;
-    if(!dayByReason[key]) dayByReason[key]={};
-    const _day=typeof getDateDay==='function'?getDateDay(r.date):r.date;
-    dayByReason[key][_day]=(dayByReason[key][_day]||0)+1;
-    if(!dateByReason[key]) dateByReason[key]={};
-    dateByReason[key][r.date]=(dateByReason[key][r.date]||0)+1;
-    if(!shiftByReason[key]) shiftByReason[key]={};
-    shiftByReason[key][r.shift||'?']=(shiftByReason[key][r.shift||'?']||0)+1;
   });
   return Object.entries(reason_pcts).map(([label,p])=>({
-    label,pct:p,cat:categoriseNotRun(label),
-    machMap:machByReason[label]||{},
-    dateMap:dateByReason[label]||{},
-    dayMap:dayByReason[label]||{},
-    shiftMap:shiftByReason[label]||{}
+    label,pct:p,cat:categoriseNotRun(label),machMap:machByReason[label]||{}
   })).sort((a,b)=>b.pct-a.pct);
 }
 function buildDtEntries(dt_breakdown, records){
-  const machByDt={},prodByDt={};
+  // Build machine breakdown map per DT category (in hrs)
+  const machByDt={};
   DT_KEYS.forEach((k,i)=>{
     const label=DT_LABELS[i];
-    machByDt[label]={};prodByDt[label]={};
+    machByDt[label]={};
     (records||[]).forEach(r=>{
       const h=r[k]||0;
-      if(h>0){
-        machByDt[label][r.machine_no]=(machByDt[label][r.machine_no]||0)+h;
-        const p=r.product_name||'—';
-        prodByDt[label][p]=(prodByDt[label][p]||0)+h;
-      }
+      if(h>0) machByDt[label][r.machine_no]=(machByDt[label][r.machine_no]||0)+h;
     });
   });
   return DT_LABELS.map(label=>({
@@ -1072,9 +760,7 @@ function buildDtEntries(dt_breakdown, records){
     pct:dt_breakdown[label]?.pct||0,
     hrs:dt_breakdown[label]?.hrs||0,
     cat:DT_CAT[label]||'other',
-    unit:'hrs',
-    machMap:machByDt[label]||{},
-    prodMap:prodByDt[label]||{}
+    machMap:machByDt[label]||{}
   })).filter(e=>e.pct>0.0001).sort((a,b)=>b.pct-a.pct);
 }
 
@@ -1085,57 +771,22 @@ function renderMachineBar(records,not_run){
   destroyChart('machineOeeBar');
   const from=document.getElementById('fDateFrom').value,to=document.getElementById('fDateTo').value;
   const shift=document.getElementById('fShift').value;
-  const fType=document.getElementById('fType').value;
-  const fProduct=document.getElementById('fProduct').value;
-  const fOperator=document.getElementById('fOperator').value;
-  const productFilterActive=(fType!=='all'||fProduct!=='all'||fOperator!=='all');
   const inRange=d=>(!from||d>=from)&&(!to||d<=to);
   const machines=[...new Set(records.map(r=>r.machine_no))].sort((a,b)=>a-b);
-  const labels=[],oVals=[],rVals=[];
+  const labels=[],vals=[],colors=[];
   machines.forEach(m=>{
     const mr=records.filter(r=>r.machine_no===m);
     const mnr=DB.not_run.filter(r=>r.machine_no==m&&inRange(r.date)&&(shift==='all'||r.shift===shift));
     const ms=[...mr.map(r=>({date:r.date,shift:r.shift,machine_no:r.machine_no})),...mnr];
     const c=compute(mr,mnr,ms);if(!c)return;
-    labels.push(`M${m}`);
-    oVals.push(+(c.overall_oee*100).toFixed(1));
-    rVals.push(+(c.oee_running*100).toFixed(1));
+    const oee=c.overall_oee*100;
+    labels.push(`M${m}`);vals.push(+oee.toFixed(1));
+    colors.push(oee>=85?'rgba(62,207,142,0.75)':oee>=70?'rgba(245,158,11,0.75)':'rgba(244,63,94,0.75)');
   });
-  function mbPctColors(arr,alpha){
-    const s=[...arr].sort((a,b)=>a-b);const n=s.length;
-    const p33=n>1?s[Math.floor(n/3)]:s[0]||0;
-    const p67=n>1?s[Math.floor(n*2/3)]:s[0]||0;
-    return arr.map(v=>v>p67?`rgba(62,207,142,${alpha})`:v>p33?`rgba(245,158,11,${alpha})`:`rgba(244,63,94,${alpha})`);
-  }
   const ctx=document.getElementById('machineOeeBar').getContext('2d');
-  const oColors=mbPctColors(oVals,1);
-  const rColors=mbPctColors(rVals,0.75);
-  const mbLineOpts={responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:!productFilterActive,position:'top',labels:{color:cLegend(),font:{size:10},padding:8,boxWidth:10}},
-      tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.raw}%`}}},
-    scales:{y:{min:0,max:110,ticks:{color:cTick(),callback:v=>v+'%',font:{size:10}},grid:{color:cGrid()}},
-            x:{ticks:{color:cTick(),font:{size:9}},grid:{display:false}}}};
-  if(productFilterActive){
-    setChartData('machineOeeBar',{xLabel:'Machine',labels,series:[{name:'OEE (running)',data:rVals}]});
-    charts['machineOeeBar']=new Chart(ctx,{type:'line',data:{labels,datasets:[{
-      label:'OEE (running)',data:rVals,
-      borderColor:'rgba(150,150,150,0.35)',backgroundColor:'transparent',
-      tension:0.3,pointRadius:5,pointHoverRadius:7,
-      pointBackgroundColor:rColors,pointBorderColor:rColors,borderDash:[4,3]
-    }]},options:mbLineOpts});
-  } else {
-    setChartData('machineOeeBar',{xLabel:'Machine',labels,series:[{name:'Overall OEE',data:oVals},{name:'OEE (running)',data:rVals}]});
-    charts['machineOeeBar']=new Chart(ctx,{type:'line',data:{labels,datasets:[
-      {label:'Overall OEE',data:oVals,
-       borderColor:'rgba(150,150,150,0.4)',backgroundColor:'rgba(79,142,247,0.06)',
-       tension:0.3,pointRadius:6,pointHoverRadius:8,fill:true,
-       pointBackgroundColor:oColors,pointBorderColor:oColors},
-      {label:'OEE (running)',data:rVals,
-       borderColor:'rgba(150,150,150,0.3)',backgroundColor:'transparent',
-       tension:0.3,pointRadius:4,pointHoverRadius:6,
-       pointBackgroundColor:rColors,pointBorderColor:rColors,borderDash:[4,3]}
-    ]},options:mbLineOpts});
-  }
+  charts['machineOeeBar']=new Chart(ctx,{type:'bar',data:{labels,datasets:[{data:vals,backgroundColor:colors,borderRadius:3,barPercentage:0.7}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`OEE: ${c.raw}%`}}},
+    scales:{y:{min:0,max:110,ticks:{color:cTick(),callback:v=>v+'%',font:{size:10}},grid:{color:cGrid()}},x:{ticks:{color:cTick(),font:{size:9}},grid:{display:false}}}}});
 }
 
 function renderTrendLine(){
@@ -1144,102 +795,24 @@ function renderTrendLine(){
   const shift=document.getElementById('fShift').value,machine=document.getElementById('fMachine').value;
   const type=document.getElementById('fType').value,prod=document.getElementById('fProduct').value;
   const operator=document.getElementById('fOperator').value;
-  const productFilterActive=(type!=='all'||prod!=='all'||operator!=='all');
   const inRange=d=>(!from||d>=from)&&(!to||d<=to);
+  const dates=[...new Set(DB.records.filter(r=>inRange(r.date)).map(r=>r.date))].sort();
   const ctx=document.getElementById('trendLine').getContext('2d');
-
-  // ── Date mode: line chart ──────────────────────────────────────────
-  if(_trendMode==='date'){
-    const dates=[...new Set(DB.records.filter(r=>inRange(r.date)).map(r=>r.date))].sort();
-    if(dates.length<2){ctx.clearRect(0,0,9999,9999);ctx.fillStyle=cTick();ctx.font='12px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText('Select multiple dates to see trend',ctx.canvas.width/2,ctx.canvas.height/2);return;}
-    const ov=[],rv=[];
-    dates.forEach(date=>{
-      const dr=DB.records.filter(r=>r.date===date&&(shift==='all'||r.shift===shift)&&(machine==='all'||r.machine_no==machine)&&(type==='all'||r.product_type===type)&&(prod==='all'||r.product_name===prod)&&(operator==='all'||r.operator_name===operator));
-      const dnr=DB.not_run.filter(r=>r.date===date&&(shift==='all'||r.shift===shift)&&(machine==='all'||r.machine_no==machine));
-      const ds=[...dr.map(r=>({date:r.date,shift:r.shift,machine_no:r.machine_no})),...dnr];
-      const c=compute(dr,dnr,ds);
-      ov.push(c?+((productFilterActive?c.oee_running:c.overall_oee)*100).toFixed(1):null);
-      rv.push(c?+(c.oee_running*100).toFixed(1):null);
-    });
-    function pctColors(arr,alpha){
-      const valid=arr.filter(v=>v!==null).sort((a,b)=>a-b);
-      const n=valid.length;
-      const p33=n>1?valid[Math.floor(n/3)]:valid[0]||0;
-      const p67=n>1?valid[Math.floor((n*2)/3)]:valid[0]||0;
-      return arr.map(v=>v===null?'transparent':v>p67?`rgba(62,207,142,${alpha})`:v>p33?`rgba(245,158,11,${alpha})`:`rgba(244,63,94,${alpha})`);
-    }
-    const ovColors=pctColors(ov,1);
-    const rvColors=pctColors(rv,0.85);
-    const ovLabel=productFilterActive?'OEE (running)':'Overall OEE';
-    const datasets=[
-      {label:ovLabel,data:ov,borderColor:'#4f8ef7',backgroundColor:'rgba(79,142,247,0.08)',
-       tension:0.3,pointRadius:5,pointBackgroundColor:ovColors,pointBorderColor:ovColors,fill:true},
-    ];
-    if(!productFilterActive){
-      datasets.push({label:'OEE (running)',data:rv,borderColor:'#f59e0b',backgroundColor:'transparent',
-        tension:0.3,pointRadius:4,pointBackgroundColor:rvColors,pointBorderColor:rvColors,borderDash:[4,4]});
-    }
-    setChartData('trendLine',{xLabel:'Date',labels:dates.map(fmtDateLabel),series:datasets.map(ds=>({name:ds.label,data:ds.data}))});
-    charts['trendLine']=new Chart(ctx,{type:'line',
-      data:{labels:dates.map(fmtDateLabel),datasets},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:cLegend(),font:{size:10},padding:8}}},
-      scales:{y:{min:0,max:110,ticks:{color:cTick(),callback:v=>v+'%',font:{size:10}},grid:{color:cGrid()}},x:{ticks:{color:cTick(),font:{size:9}},grid:{display:false}}}}});
-    return;
-  }
-
-  // ── Day / Week / Shift modes: grouped bar chart ────────────────────
-  // Determine group keys and key function
-  let groupKeys,getKey,getKeyNr,groupLabel;
-  const allFilt=DB.records.filter(r=>inRange(r.date)&&(shift==='all'||r.shift===shift)&&(machine==='all'||r.machine_no==machine)&&(type==='all'||r.product_type===type)&&(prod==='all'||r.product_name===prod)&&(operator==='all'||r.operator_name===operator));
-  const allFiltNr=DB.not_run.filter(r=>inRange(r.date)&&(shift==='all'||r.shift===shift)&&(machine==='all'||r.machine_no==machine));
-  if(_trendMode==='day'){
-    groupKeys=DAY_NAMES.filter(d=>allFilt.some(r=>getDateDay(r.date)===d));
-    getKey=r=>getDateDay(r.date);getKeyNr=r=>getDateDay(r.date);groupLabel=k=>k;
-  } else if(_trendMode==='week'){
-    groupKeys=[...new Set(allFilt.map(r=>getWeekStart(r.date)))].sort();
-    getKey=r=>getWeekStart(r.date);getKeyNr=r=>getWeekStart(r.date);groupLabel=k=>fmtWeekLabel(k);
-  } else {
-    groupKeys=['A','B'].filter(sh=>allFilt.some(r=>r.shift===sh));
-    getKey=r=>r.shift;getKeyNr=r=>r.shift;groupLabel=k=>'Shift '+k;
-  }
-  const labels=[],oVals=[],rVals=[];
-  groupKeys.forEach(key=>{
-    const dr=allFilt.filter(r=>getKey(r)===key);
-    const dnr=allFiltNr.filter(r=>getKeyNr(r)===key);
+  if(dates.length<2){ctx.clearRect(0,0,9999,9999);ctx.fillStyle=cTick();ctx.font='12px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillText('Select multiple dates to see trend',ctx.canvas.width/2,ctx.canvas.height/2);return;}
+  const ov=[],rv=[];
+  dates.forEach(date=>{
+    const dr=DB.records.filter(r=>r.date===date&&(shift==='all'||r.shift===shift)&&(machine==='all'||r.machine_no==machine)&&(type==='all'||r.product_type===type)&&(prod==='all'||r.product_name===prod)&&(operator==='all'||r.operator_name===operator));
+    const dnr=DB.not_run.filter(r=>r.date===date&&(shift==='all'||r.shift===shift)&&(machine==='all'||r.machine_no==machine));
     const ds=[...dr.map(r=>({date:r.date,shift:r.shift,machine_no:r.machine_no})),...dnr];
-    const c=compute(dr,dnr,ds);if(!c||!dr.length)return;
-    labels.push(groupLabel(key));
-    oVals.push(+(c.overall_oee*100).toFixed(1));
-    rVals.push(+(c.oee_running*100).toFixed(1));
+    const c=compute(dr,dnr,ds);
+    ov.push(c?+(c.overall_oee*100).toFixed(1):null);
+    rv.push(c?+(c.oee_running*100).toFixed(1):null);
   });
-  if(!labels.length){ctx.clearRect(0,0,9999,9999);return;}
-  function tPctC(arr,al){
-    const s=[...arr].sort((a,b)=>a-b);const n=s.length;
-    const p33=n>1?s[Math.floor(n/3)]:s[0]||0;
-    const p67=n>1?s[Math.floor(n*2/3)]:s[0]||0;
-    return arr.map(v=>v>p67?`rgba(62,207,142,${al})`:v>p33?`rgba(245,158,11,${al})`:`rgba(244,63,94,${al})`);
-  }
-  const xFnt=(_trendMode==='shift'||_trendMode==='day')?{size:12,weight:'700'}:{size:10};
-  if(productFilterActive){
-    setChartData('trendLine',{xLabel:_trendMode,labels,series:[{name:'OEE (running)',data:rVals}]});
-    charts['trendLine']=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'OEE (running)',data:rVals,backgroundColor:tPctC(rVals,0.75),borderRadius:4,barPercentage:0.55}]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`OEE: ${c.raw}%`}}},
-      scales:{y:{min:0,max:110,ticks:{color:cTick(),callback:v=>v+'%',font:{size:10}},grid:{color:cGrid()}},x:{ticks:{color:cTick(),font:xFnt},grid:{display:false}}}}});
-  } else {
-    // Overall bar
-    if(labels.length>1){
-      const _oC=compute(allFilt,allFiltNr,[...allFilt.map(r=>({date:r.date,shift:r.shift,machine_no:r.machine_no})),...allFiltNr]);
-      if(_oC){ labels.push('Overall'); oVals.push(+(_oC.overall_oee*100).toFixed(1)); rVals.push(+(_oC.oee_running*100).toFixed(1)); }
-    }
-    setChartData('trendLine',{xLabel:_trendMode,labels,series:[{name:'Overall OEE',data:oVals},{name:'OEE (running)',data:rVals}]});
-    charts['trendLine']=new Chart(ctx,{type:'bar',data:{labels,datasets:[
-      {label:'Overall OEE',data:oVals,backgroundColor:tPctC(oVals,0.8),borderRadius:4,barPercentage:0.85,categoryPercentage:0.75},
-      {label:'OEE (running)',data:rVals,backgroundColor:tPctC(rVals,0.55),borderRadius:4,barPercentage:0.85,categoryPercentage:0.75}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:true,position:'top',labels:{color:cLegend(),font:{size:10},padding:8,boxWidth:10}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.raw}%`}}},
-      scales:{y:{min:0,max:110,ticks:{color:cTick(),callback:v=>v+'%',font:{size:10}},grid:{color:cGrid()}},x:{ticks:{color:cTick(),font:xFnt},grid:{display:false}}}}});
-  }
+  charts['trendLine']=new Chart(ctx,{type:'line',
+    data:{labels:dates.map(d=>{const p=d.split('-');return`${p[2]}/${p[1]}`;}),
+    datasets:[{label:'Overall OEE',data:ov,borderColor:'#4f8ef7',backgroundColor:'rgba(79,142,247,0.08)',tension:0.3,pointRadius:3,fill:true},{label:'OEE (running)',data:rv,borderColor:'#f59e0b',backgroundColor:'transparent',tension:0.3,pointRadius:3,borderDash:[4,4]}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:cLegend(),font:{size:10},padding:8}}},
+    scales:{y:{min:0,max:110,ticks:{color:cTick(),callback:v=>v+'%',font:{size:10}},grid:{color:cGrid()}},x:{ticks:{color:cTick(),font:{size:9}},grid:{display:false}}}}});
 }
 
 function buildMachineTooltipData(records, not_run, inRange, shift){
@@ -1263,19 +836,19 @@ function buildMachineTooltipData(records, not_run, inRange, shift){
   return machData;
 }
 
-function machTooltipOpts(machData){
+function machTooltipCallback(machData){
   return {
-    enabled:false,external:extTooltip,mode:'index',intersect:false,
     callbacks:{
+      label:ctx=>`${ctx.dataset.label}: ${ctx.raw}%`,
       afterBody:ctx=>{
         const m=parseInt(ctx[0].label.replace('M',''));
         const d=machData[m];
-        if(!d)return[];
+        if(!d) return[];
         const lines=[];
         if(d.topReasons.length){
           lines.push('');
           lines.push('Not-run reasons:');
-          d.topReasons.forEach(([r,c])=>lines.push(`  ${r.length>48?r.slice(0,46)+'…':r}: ${c} slots`));
+          d.topReasons.forEach(([r,c])=>lines.push(`  ${r.slice(0,30)}: ${c} slots`));
         }
         if(d.topDt.length){
           lines.push('');
@@ -1292,10 +865,6 @@ function renderLossComposition(records){
   destroyChart('lossComposition');
   const from=document.getElementById('fDateFrom').value,to=document.getElementById('fDateTo').value;
   const shift=document.getElementById('fShift').value;
-  const fType=document.getElementById('fType').value;
-  const fProduct=document.getElementById('fProduct').value;
-  const fOperator=document.getElementById('fOperator').value;
-  const productFilterActive=(fType!=='all'||fProduct!=='all'||fOperator!=='all');
   const inRange=d=>(!from||d>=from)&&(!to||d<=to);
   const machines=[...new Set(records.map(r=>r.machine_no))].sort((a,b)=>a-b);
   const labels=[],snr=[],avail=[],cav=[],speed=[],qual=[];
@@ -1307,24 +876,12 @@ function renderLossComposition(records){
     const ms=[...mr.map(r=>({date:r.date,shift:r.shift,machine_no:r.machine_no})),...mnr];
     const c=compute(mr,mnr,ms);if(!c)return;
     labels.push(`M${m}`);
-    snr.push(productFilterActive?0:+((1-c.shift_run_pct)*100).toFixed(1));
+    snr.push(+((1-c.shift_run_pct)*100).toFixed(1));
     avail.push(+(c.avail_loss*100).toFixed(1));
     cav.push(+(c.cav_loss*100).toFixed(1));
     speed.push(+(c.speed_loss*100).toFixed(1));
     qual.push(+(c.quality_loss*100).toFixed(1));
   });
-  // Build extraSheets for Excel export
-  const _lcNrRows=[],_lcDtRows=[];
-  Object.entries(machData).forEach(([m,md])=>{
-    md.topReasons.forEach(([r,c])=>_lcNrRows.push([`M${m}`,r,c]));
-    md.topDt.forEach(([cause,h])=>_lcDtRows.push([`M${m}`,cause,+h.toFixed(1)]));
-  });
-  setChartData('lossComposition',{xLabel:'Machine',labels,series:[
-    {name:'Shift not run',data:snr},{name:'Avail (DT)',data:avail},{name:'Cavity',data:cav},{name:'Speed',data:speed},{name:'Quality',data:qual}
-  ],extraSheets:[
-    {name:'Not-run Reasons',headers:['Machine','Reason','Slots'],rows:_lcNrRows},
-    {name:'Downtime Causes',headers:['Machine','Cause','Hours'],rows:_lcDtRows}
-  ]});
   const ctx=document.getElementById('lossComposition').getContext('2d');
   charts['lossComposition']=new Chart(ctx,{type:'bar',
     data:{labels,datasets:[
@@ -1336,7 +893,7 @@ function renderLossComposition(records){
     ]},
     options:{responsive:true,maintainAspectRatio:false,
     plugins:{legend:{position:'top',labels:{color:cLegend(),font:{size:10},padding:6}},
-             tooltip:{...machTooltipOpts(machData)}},
+             tooltip:{mode:'index',intersect:false,...machTooltipCallback(machData)}},
     scales:{y:{ticks:{color:cTick(),callback:v=>v+'%',font:{size:10}},grid:{color:cGrid()}},x:{ticks:{color:cTick(),font:{size:9}},grid:{display:false}}}}});
 }
 
@@ -1344,80 +901,35 @@ function renderDailyLoss(records,not_run){
   destroyChart('dailyLossBar');
   const from=document.getElementById('fDateFrom').value,to=document.getElementById('fDateTo').value;
   const shift=document.getElementById('fShift').value;
-  const fType=document.getElementById('fType').value;
-  const fProduct=document.getElementById('fProduct').value;
-  const fOperator=document.getElementById('fOperator').value;
-  const productFilterActive=(fType!=='all'||fProduct!=='all'||fOperator!=='all');
   const inRange=d=>(!from||d>=from)&&(!to||d<=to);
-
-  // Grouping by _lossMode
-  let groupKeys,getKey,getKeyNr,groupLabel;
-  if(_lossMode==='date'){
-    groupKeys=[...new Set(records.filter(r=>inRange(r.date)).map(r=>r.date))].sort();
-    getKey=r=>r.date;getKeyNr=r=>r.date;groupLabel=k=>fmtDateLabel(k);
-  } else if(_lossMode==='day'){
-    groupKeys=DAY_NAMES.filter(d=>records.some(r=>getDateDay(r.date)===d));
-    getKey=r=>getDateDay(r.date);getKeyNr=r=>getDateDay(r.date);groupLabel=k=>k;
-  } else if(_lossMode==='week'){
-    groupKeys=[...new Set(records.filter(r=>inRange(r.date)).map(r=>getWeekStart(r.date)))].sort();
-    getKey=r=>getWeekStart(r.date);getKeyNr=r=>getWeekStart(r.date);groupLabel=k=>fmtWeekLabel(k);
-  } else {
-    groupKeys=['A','B'].filter(sh=>records.some(r=>r.shift===sh));
-    getKey=r=>r.shift;getKeyNr=r=>r.shift;groupLabel=k=>'Shift '+k;
-  }
-
+  const dates=[...new Set(records.filter(r=>inRange(r.date)).map(r=>r.date))].sort();
   const labels=[],snr=[],avail=[],cav=[],speed=[],qual=[];
-  const grpTooltipData={};
-  groupKeys.forEach(key=>{
-    const dr=records.filter(r=>getKey(r)===key);
-    const dnr=(not_run||[]).filter(r=>getKeyNr(r)===key);
+  // Build per-date tooltip data
+  const dateTooltipData={};
+  dates.forEach(date=>{
+    const dr=records.filter(r=>r.date===date);
+    const dnr=DB.not_run.filter(r=>r.date===date&&(shift==='all'||r.shift===shift));
     const ds=[...dr.map(r=>({date:r.date,shift:r.shift,machine_no:r.machine_no})),...dnr];
     const c=compute(dr,dnr,ds);if(!c)return;
-    const lbl=groupLabel(key);
+    const p=date.split('-');
+    const lbl=`${p[2]}/${p[1]}`;
     labels.push(lbl);
-    snr.push(productFilterActive?0:+((1-c.shift_run_pct)*100).toFixed(1));
+    snr.push(+((1-c.shift_run_pct)*100).toFixed(1));
     avail.push(+(c.avail_loss*100).toFixed(1));
     cav.push(+(c.cav_loss*100).toFixed(1));
     speed.push(+(c.speed_loss*100).toFixed(1));
     qual.push(+(c.quality_loss*100).toFixed(1));
+    // Top not-run reasons for this date
     const reasonCounts={};
     dnr.forEach(r=>{const k=r.reason||'Unknown';reasonCounts[k]=(reasonCounts[k]||0)+1;});
     const topReasons=Object.entries(reasonCounts).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    // Top DT categories for this date
     const dtTotals={};
     DT_KEYS.forEach((k,i)=>{const h=dr.reduce((s,r)=>s+(r[k]||0),0);if(h>0.01)dtTotals[DT_LABELS[i]]=h;});
     const topDt=Object.entries(dtTotals).sort((a,b)=>b[1]-a[1]).slice(0,3);
-    grpTooltipData[lbl]={topReasons,topDt};
+    dateTooltipData[lbl]={topReasons,topDt};
   });
-  // Overall bar
-  if(labels.length>1){
-    const allR2=records.filter(r=>inRange(r.date));
-    const allNr2=(not_run||[]).filter(r=>inRange(r.date));
-    const allDs2=[...allR2.map(r=>({date:r.date,shift:r.shift,machine_no:r.machine_no})),...allNr2];
-    const ovC=compute(allR2,allNr2,allDs2);
-    if(ovC){
-      labels.push('Overall');
-      snr.push(+((1-ovC.shift_run_pct)*100).toFixed(1));
-      avail.push(+(ovC.avail_loss*100).toFixed(1));
-      cav.push(+(ovC.cav_loss*100).toFixed(1));
-      speed.push(+(ovC.speed_loss*100).toFixed(1));
-      qual.push(+(ovC.quality_loss*100).toFixed(1));
-      if(grpTooltipData) grpTooltipData['Overall']={topReasons:[],topDt:[]};
-    }
-  }
-  const _dlNrRows=[],_dlDtRows=[];
-  Object.entries(grpTooltipData).forEach(([lbl,dd])=>{
-    dd.topReasons.forEach(([r,c])=>_dlNrRows.push([lbl,r,c]));
-    dd.topDt.forEach(([cause,h])=>_dlDtRows.push([lbl,cause,+h.toFixed(1)]));
-  });
-  const xLbl=_lossMode==='date'?'Date':_lossMode==='week'?'Week':_lossMode==='day'?'Day':'Shift';
-  setChartData('dailyLossBar',{xLabel:xLbl,labels,series:[
-    {name:'Shift not run',data:snr},{name:'Avail (DT)',data:avail},{name:'Cavity',data:cav},{name:'Speed',data:speed},{name:'Quality',data:qual}
-  ],extraSheets:[
-    {name:'Not-run Reasons',headers:[xLbl,'Reason','Slots'],rows:_dlNrRows},
-    {name:'Downtime Causes',headers:[xLbl,'Cause','Hours'],rows:_dlDtRows}
-  ]});
   const ctx=document.getElementById('dailyLossBar').getContext('2d');
-  const xTickFnt=(_lossMode==='shift'||_lossMode==='day')?{size:11,weight:'600'}:{size:9};
   charts['dailyLossBar']=new Chart(ctx,{type:'bar',
     data:{labels,datasets:[
       {label:'Shift not run',data:snr,backgroundColor:'#3ecf8e44',borderColor:'#3ecf8e',borderWidth:1,stack:'l'},
@@ -1428,18 +940,27 @@ function renderDailyLoss(records,not_run){
     ]},
     options:{responsive:true,maintainAspectRatio:false,
     plugins:{legend:{position:'top',labels:{color:cLegend(),font:{size:10},padding:6}},
-      tooltip:{enabled:false,external:extTooltip,mode:'index',intersect:false,callbacks:{
+      tooltip:{mode:'index',intersect:false,callbacks:{
+        label:ctx=>`${ctx.dataset.label}: ${ctx.raw}%`,
         afterBody:ctx=>{
           const lbl=ctx[0].label;
-          const d=grpTooltipData[lbl];
+          const d=dateTooltipData[lbl];
           if(!d)return[];
           const lines=[];
-          if(d.topReasons.length){lines.push('');lines.push('Not-run reasons:');d.topReasons.forEach(([r,c])=>lines.push(`  ${r.slice(0,30)}: ${c} slots`));}
-          if(d.topDt.length){lines.push('');lines.push('Downtime causes:');d.topDt.forEach(([r,h])=>lines.push(`  ${r}: ${h.toFixed(1)}h`));}
+          if(d.topReasons.length){
+            lines.push('');
+            lines.push('Not-run reasons:');
+            d.topReasons.forEach(([r,c])=>lines.push(`  ${r.slice(0,30)}: ${c} slots`));
+          }
+          if(d.topDt.length){
+            lines.push('');
+            lines.push('Downtime causes:');
+            d.topDt.forEach(([r,h])=>lines.push(`  ${r}: ${h.toFixed(1)}h`));
+          }
           return lines;
         }
       }}},
-    scales:{y:{ticks:{color:cTick(),callback:v=>v+'%',font:{size:10}},grid:{color:cGrid()}},x:{ticks:{color:cTick(),font:xTickFnt},grid:{display:false}}}}});
+    scales:{y:{ticks:{color:cTick(),callback:v=>v+'%',font:{size:10}},grid:{color:cGrid()}},x:{ticks:{color:cTick(),font:{size:9}},grid:{display:false}}}}});
 }
 
 function renderShiftCompare(from,to){
@@ -1457,13 +978,7 @@ function renderShiftCompare(from,to){
   const ra=DB.records.filter(x=>inRange(x.date)),rn=DB.not_run.filter(x=>inRange(x.date));
   const sl=[...ra.map(x=>({date:x.date,shift:x.shift,machine_no:x.machine_no})),...rn];
   const da=mk('A'),db_=mk('B'),dc=compute(ra,rn,sl);
-  setTableData('shiftCompare',{sheets:[{
-    name:'Shift A vs B',
-    headers:['Metric','Shift A','Shift B','Combined'],
-    rows:metrics.map(m=>[m.label,da?m.fn(da):'—',db_?m.fn(db_):'—',dc?m.fn(dc):'—'])
-  }]});
-  const _scb=document.getElementById('shiftCompareBody');if(!_scb)return;
-  _scb.innerHTML=metrics.map(m=>`<tr>
+  document.getElementById('shiftCompareBody').innerHTML=metrics.map(m=>`<tr>
     <td style="color:var(--text2)">${m.label}</td>
     <td class="mono">${da?m.fn(da):'—'}</td><td class="mono">${db_?m.fn(db_):'—'}</td>
     <td class="mono" style="color:var(--accent)">${dc?m.fn(dc):'—'}</td>
@@ -1476,22 +991,20 @@ function renderNotRunLog(not_run){
     return`<tr>
       <td class="mono">${r.date}</td><td>${r.shift}</td><td class="mono">M${r.machine_no}</td>
       <td><span style="font-size:9px;padding:1px 6px;border-radius:3px;background:${CAT_COLOR[cat]}22;color:${CAT_COLOR[cat]}">${CAT_LABEL[cat]}</span></td>
-      <td style="color:${r.reason&&r.reason.includes('Missing')?'var(--text3)':'var(--text2)'};white-space:normal;max-width:280px" title="${r.reason||''}">${r.reason||'—'}</td>
+      <td style="color:${r.reason&&r.reason.includes('Missing')?'var(--text3)':'var(--text2)'}">${r.reason||'—'}</td>
     </tr>`;
   }).join('');
 }
 
-function renderDtStats(records,total_shift_hrs,total_sched_hrs_,shift_run_pct_){
+function renderDtStats(records,total_shift_hrs){
   const total_dt=DT_KEYS.reduce((s,k)=>s+records.reduce((a,r)=>a+(r[k]||0),0),0);
-  const _sr=shift_run_pct_||1;
-  const _denom=(total_shift_hrs&&_sr)?(total_shift_hrs/_sr):total_sched_hrs_||total_shift_hrs||1;
   let maxHrs=0,maxLabel='—';
   DT_KEYS.forEach((k,i)=>{const h=records.reduce((s,r)=>s+(r[k]||0),0);if(h>maxHrs){maxHrs=h;maxLabel=DT_LABELS[i];}});
   document.getElementById('dtStats').innerHTML=`
     <div style="background:var(--bg3);border-radius:6px;padding:10px">
       <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Total downtime</div>
       <div style="font-family:var(--mono);font-size:18px;color:var(--amber)">${total_dt.toFixed(1)} hrs</div>
-      <div style="font-size:10px;color:var(--text2)">${pct(total_dt/_denom)} of theoretical hrs</div>
+      <div style="font-size:10px;color:var(--text2)">${pct(total_shift_hrs?total_dt/total_shift_hrs:0)} of shift hrs</div>
     </div>
     <div style="background:var(--bg3);border-radius:6px;padding:10px">
       <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Biggest cause</div>
@@ -1501,24 +1014,6 @@ function renderDtStats(records,total_shift_hrs,total_sched_hrs_,shift_run_pct_){
 }
 
 function renderMachineTable(records){
-  // Store for Excel download
-  setTableData('machineDetail',{sheets:[{
-    name:'Machine Detail',
-    headers:['Date','Machine','Shift','Operator','Product','Type','Target','Actual','Rejected','OEE%','Avail loss%','Cav loss%','Speed loss%','Qual loss%','DT hrs','Run hrs'],
-    rows:records.map(r=>{
-      const dt_=DT_KEYS.reduce((s,k)=>s+(r[k]||0),0);
-      const al_=r.duration_hrs?(r.duration_hrs-r.run_hrs)/r.duration_hrs:0;
-      const cl_=r.total_cavities?(r.total_cavities-r.running_cavities)/r.total_cavities:0;
-      const ql_=(r.total_rej_pcs+r.actual_good_pcs)>0?r.total_rej_pcs/(r.total_rej_pcs+r.actual_good_pcs):0;
-      const or__=r.target_pcs?r.actual_good_pcs/r.target_pcs:0;
-      const denom_=(1-al_)*(1-cl_)*(1-ql_);
-      const sl_=denom_>0?Math.max(0,1-or__/denom_):0;
-      return[r.date,`M${r.machine_no}`,r.shift,r.operator_name||'—',r.product_name,r.product_type,
-             r.target_pcs,r.actual_good_pcs,Math.round(r.total_rej_pcs),
-             +(or__*100).toFixed(1),+(al_*100).toFixed(1),+(cl_*100).toFixed(1),
-             +(sl_*100).toFixed(1),+(ql_*100).toFixed(1),+dt_.toFixed(1),+r.run_hrs.toFixed(1)];
-    })
-  }]});
   document.getElementById('machineTableBody').innerHTML=records.map(r=>{
     const dt=DT_KEYS.reduce((s,k)=>s+(r[k]||0),0);
     const al=r.duration_hrs?(r.duration_hrs-r.run_hrs)/r.duration_hrs:0;
@@ -1542,790 +1037,8 @@ function renderMachineTable(records){
 }
 
 // ═══════════════════════════════════════════════
-// PRODUCT & OPERATOR LOSS COMPOSITION (DRILLDOWNS)
-// ═══════════════════════════════════════════════
-function lossCompositionByGroup(records, groupFn, labelFn, canvasId, cardId){
-  destroyChart(canvasId);
-  // Build groups sorted descending by shift count (number of records)
-  const _grpCounts={};
-  records.forEach(r=>{const g=groupFn(r);if(g)_grpCounts[g]=(_grpCounts[g]||0)+1;});
-  const groups=Object.keys(_grpCounts).sort((a,b)=>_grpCounts[b]-_grpCounts[a]);
-  if(cardId){
-    const card=document.getElementById(cardId);
-    if(card) card.style.display=groups.length?'':'none';
-  }
-  if(!groups.length) return;
-  const labels=[],avail=[],cav=[],speed=[],qual=[];
-  const groupDtData={};
-  groups.forEach(g=>{
-    const gr=records.filter(r=>groupFn(r)===g);
-    if(!gr.length) return;
-    const totalDurW=gr.reduce((s,r)=>s+(r.duration_hrs||0),0)||1;
-    const wt=(r,v)=>v*(r.duration_hrs||0);
-    const avail_loss=gr.reduce((s,r)=>s+wt(r,r.duration_hrs?(r.duration_hrs-r.run_hrs)/r.duration_hrs:0),0)/totalDurW;
-    const cav_loss=gr.reduce((s,r)=>s+wt(r,r.total_cavities?(r.total_cavities-r.running_cavities)/r.total_cavities:0),0)/totalDurW;
-    const quality_loss=gr.reduce((s,r)=>s+wt(r,(r.total_rej_pcs+r.actual_good_pcs)>0?r.total_rej_pcs/(r.total_rej_pcs+r.actual_good_pcs):0),0)/totalDurW;
-    const oee_running=gr.reduce((s,r)=>s+wt(r,r.target_pcs?r.actual_good_pcs/r.target_pcs:0),0)/totalDurW;
-    const avail_rate=1-avail_loss,cav_rate=1-cav_loss,quality_rate=1-quality_loss;
-    const denom=avail_rate*cav_rate*quality_rate;
-    const speed_loss=denom>0?Math.max(0,1-oee_running/denom):0;
-    const lbl=labelFn(g);
-    const barLbl=lbl.length>18?lbl.slice(0,16)+'…':lbl;
-    labels.push(barLbl);
-    avail.push(+(avail_loss*100).toFixed(1));
-    cav.push(+(cav_loss*100).toFixed(1));
-    speed.push(+(speed_loss*100).toFixed(1));
-    qual.push(+(quality_loss*100).toFixed(1));
-    // Build per-group DT summary for tooltip
-    const dtTotals={};
-    DT_KEYS.forEach((k,i)=>{const h=gr.reduce((s,r)=>s+(r[k]||0),0);if(h>0.01)dtTotals[DT_LABELS[i]]=h;});
-    const topDt=Object.entries(dtTotals).sort((a,b)=>b[1]-a[1]).slice(0,4);
-    groupDtData[barLbl]={topDt};
-  });
-  if(!labels.length) return;
-  const _grDtRows=[];
-  Object.entries(groupDtData).forEach(([g,gd])=>{
-    gd.topDt.forEach(([cause,h])=>_grDtRows.push([g,cause,+h.toFixed(1)]));
-  });
-  setChartData(canvasId,{xLabel:'Group',labels,series:[
-    {name:'Avail (DT)',data:avail},{name:'Cavity',data:cav},{name:'Speed',data:speed},{name:'Quality',data:qual}
-  ],extraSheets:_grDtRows.length?[{name:'Downtime Causes',headers:['Group','Cause','Hours'],rows:_grDtRows}]:[]});
-  const ctx=document.getElementById(canvasId).getContext('2d');
-  charts[canvasId]=new Chart(ctx,{type:'bar',
-    data:{labels,datasets:[
-      {label:'Avail (DT)',data:avail,backgroundColor:'#4f8ef755',borderColor:'#4f8ef7',borderWidth:1,stack:'l'},
-      {label:'Cavity',data:cav,backgroundColor:'#a78bfa55',borderColor:'#a78bfa',borderWidth:1,stack:'l'},
-      {label:'Speed',data:speed,backgroundColor:'#f59e0b55',borderColor:'#f59e0b',borderWidth:1,stack:'l'},
-      {label:'Quality',data:qual,backgroundColor:'#f43f5e55',borderColor:'#f43f5e',borderWidth:1,stack:'l'},
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{position:'top',labels:{color:cLegend(),font:{size:10},padding:6}},
-        tooltip:{enabled:false,external:extTooltip,mode:'index',intersect:false,
-          callbacks:{afterBody:ctx=>{
-            const lbl=ctx[0].label;
-            const d=groupDtData[lbl];
-            if(!d||!d.topDt.length)return[];
-            const lines=['','Downtime causes:'];
-            d.topDt.forEach(([r,h])=>lines.push(`  ${r}: ${h.toFixed(1)}h`));
-            return lines;
-          }}}},
-      scales:{y:{ticks:{color:cTick(),callback:v=>v+'%',font:{size:10}},grid:{color:cGrid()}},
-              x:{ticks:{color:cTick(),font:{size:9},maxRotation:35},grid:{display:false}}}}});
-}
-
-function renderProductLossBar(records){
-  lossCompositionByGroup(records,r=>r.product_name,g=>g,'productLossBar',null);
-}
-function renderOperatorLossBar(records){
-  lossCompositionByGroup(records,r=>r.operator_name,g=>g,'operatorLossBar','operatorLossCard');
-}
-
-// ═══════════════════════════════════════════════
-// PRODUCT & OPERATOR OEE BARS
-// ═══════════════════════════════════════════════
-function renderProductOeeBar(records, not_run){
-  destroyChart('productOeeBar');
-  const from=document.getElementById('fDateFrom').value,to=document.getElementById('fDateTo').value;
-  const shift=document.getElementById('fShift').value;
-  const fType=document.getElementById('fType').value;
-  const fOperator=document.getElementById('fOperator').value;
-  const productFilterActive=(fType!=='all'||fOperator!=='all');
-  const inRange=d=>(!from||d>=from)&&(!to||d<=to);
-
-  // Sort products by shift count descending
-  const prodShiftMap={};
-  [...new Set(records.map(r=>r.product_name).filter(Boolean))].forEach(p=>{
-    prodShiftMap[p]=records.filter(r=>r.product_name===p).length;
-  });
-  const products=Object.keys(prodShiftMap).sort((a,b)=>prodShiftMap[b]-prodShiftMap[a]);
-  const labels=[],vals=[],shiftCounts=[],prodFullNames=[];
-  products.forEach(prod=>{
-    const pr=records.filter(r=>r.product_name===prod);
-    if(!pr.length) return;
-    const totalDurW=pr.reduce((s,r)=>s+(r.duration_hrs||0),0)||1;
-    const wt=(r,v)=>v*(r.duration_hrs||0);
-    const oee_running=pr.reduce((s,r)=>s+wt(r,r.target_pcs?r.actual_good_pcs/r.target_pcs:0),0)/totalDurW;
-    labels.push(prod.length>18?prod.slice(0,16)+'…':prod);
-    vals.push(+(oee_running*100).toFixed(1));
-    shiftCounts.push(pr.length);
-    prodFullNames.push(prod);
-  });
-  if(!vals.length){ document.getElementById('productOeeBar').getContext('2d').clearRect(0,0,9999,9999); return; }
-  setChartData('productOeeBar',{xLabel:'Product',labels,series:[{name:'OEE (running)',data:vals},{name:'Shifts run',data:shiftCounts}]});
-  // Percentile coloring
-  const sorted=[...vals].sort((a,b)=>a-b);
-  const n=sorted.length;
-  const p33=n>1?sorted[Math.floor(n/3)]:sorted[0]||0;
-  const p67=n>1?sorted[Math.floor((n*2)/3)]:sorted[0]||0;
-  const colors=vals.map(v=>v>p67?'rgba(62,207,142,0.75)':v>p33?'rgba(245,158,11,0.75)':'rgba(244,63,94,0.75)');
-  const ctx=document.getElementById('productOeeBar').getContext('2d');
-  charts['productOeeBar']=new Chart(ctx,{type:'bar',
-    data:{labels,datasets:[{label:'OEE (running)',data:vals,backgroundColor:colors,borderRadius:3,barPercentage:0.65}]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{
-        title:items=>[prodFullNames[items[0].dataIndex]],
-        label:c=>`OEE (running): ${c.raw}%`,
-        afterLabel:c=>`Shifts run: ${shiftCounts[c.dataIndex]}`
-      }}},
-      scales:{y:{min:0,max:110,ticks:{color:cTick(),callback:v=>v+'%',font:{size:10}},grid:{color:cGrid()}},
-              x:{ticks:{color:cTick(),font:{size:9},maxRotation:35},grid:{display:false}}}}});
-}
-
-function renderOperatorOeeBar(records, not_run){
-  destroyChart('operatorOeeBar');
-  const card=document.getElementById('operatorOeeCard');
-  // Sort operators by shift count descending
-  const opShiftMap2={};
-  [...new Set(records.map(r=>r.operator_name).filter(Boolean))].forEach(o=>{
-    opShiftMap2[o]=records.filter(r=>r.operator_name===o).length;
-  });
-  const operators=Object.keys(opShiftMap2).sort((a,b)=>opShiftMap2[b]-opShiftMap2[a]);
-  if(!operators.length){ card.style.display='none'; return; }
-  card.style.display='';
-
-  const labels=[],vals=[],opShiftCounts=[];
-  operators.forEach(op=>{
-    const or_=records.filter(r=>r.operator_name===op);
-    if(!or_.length) return;
-    const totalDurW=or_.reduce((s,r)=>s+(r.duration_hrs||0),0)||1;
-    const wt=(r,v)=>v*(r.duration_hrs||0);
-    const oee_running=or_.reduce((s,r)=>s+wt(r,r.target_pcs?r.actual_good_pcs/r.target_pcs:0),0)/totalDurW;
-    labels.push(op.length>18?op.slice(0,16)+'…':op);
-    vals.push(+(oee_running*100).toFixed(1));
-    opShiftCounts.push(or_.length);
-  });
-  if(!vals.length) return;
-  setChartData('operatorOeeBar',{xLabel:'Operator',labels,series:[{name:'OEE (running)',data:vals},{name:'Shifts run',data:opShiftCounts}]});
-  // Percentile coloring
-  const sorted=[...vals].sort((a,b)=>a-b);
-  const n=sorted.length;
-  const p33=n>1?sorted[Math.floor(n/3)]:sorted[0]||0;
-  const p67=n>1?sorted[Math.floor((n*2)/3)]:sorted[0]||0;
-  const colors=vals.map(v=>v>p67?'rgba(62,207,142,0.75)':v>p33?'rgba(245,158,11,0.75)':'rgba(244,63,94,0.75)');
-  const ctx=document.getElementById('operatorOeeBar').getContext('2d');
-  charts['operatorOeeBar']=new Chart(ctx,{type:'bar',
-    data:{labels,datasets:[{label:'OEE (running)',data:vals,backgroundColor:colors,borderRadius:3,barPercentage:0.65}]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{
-        label:c=>`OEE (running): ${c.raw}%`,
-        afterLabel:c=>`Shifts run: ${opShiftCounts[c.dataIndex]}`
-      }}},
-      scales:{y:{min:0,max:110,ticks:{color:cTick(),callback:v=>v+'%',font:{size:10}},grid:{color:cGrid()}},
-              x:{ticks:{color:cTick(),font:{size:9},maxRotation:35},grid:{display:false}}}}});
-}
-
-// ═══════════════════════════════════════════════
 // MAIN RENDER
 // ═══════════════════════════════════════════════
-// ═══════════════════════════════════════════════
-// MACHINE OEE MATRIX
-// ═══════════════════════════════════════════════
-let _matrixDim='date';
-let _matrixRecords=[];
-let _matrixNotRun=[];
-let _matrixAllSlots=[];
-const _matrixCellData={};
-
-const DAY_NAMES=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-function getDateDay(dateStr){const d=new Date(dateStr+'T00:00:00');return DAY_NAMES[(d.getDay()+6)%7];}
-function fmtDateLabel(dateStr){const p=dateStr.split('-');return getDateDay(dateStr)+' '+p[2]+'/'+p[1];}
-function _localDateStr(d){
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-}
-function getWeekStart(dateStr){
-  const d=new Date(dateStr+'T00:00:00');
-  const day=d.getDay()||7;           // 0(Sun)→7, Mon=1…Sat=6
-  d.setDate(d.getDate()-day+1);      // roll back to Monday
-  return _localDateStr(d);           // local date, no UTC shift
-}
-
-function fmtWeekLabel(weekStartStr){
-  const m=new Date(weekStartStr+'T00:00:00');
-  const sun=new Date(m.getTime()+6*86400000);
-  // Cap end date at latest data date for incomplete (current) week
-  let endDate=sun;
-  if(DB&&DB.records&&DB.records.length){
-    const latestStr=[...DB.records.map(r=>r.date)].sort().pop();
-    const latest=new Date(latestStr+'T00:00:00');
-    // Is this weekStartStr the same as the latest data's week start?
-    const ldow=(latest.getDay()+6)%7;
-    const latestMon=new Date(latest);latestMon.setDate(latest.getDate()-ldow);
-    if(m.getTime()===latestMon.getTime()&&latest<sun) endDate=latest;
-  }
-  const f=d=>`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
-  return `${f(m)}–${f(endDate)}`;
-}
-
-function switchMatrix(dim,btn){
-  _matrixDim=dim;
-  document.querySelectorAll('.mtx-btn').forEach(b=>b.classList.remove('mtx-active'));
-  if(btn) btn.classList.add('mtx-active');
-  const sub=document.getElementById('matrixSubtitle');
-  if(sub) sub.textContent=(dim==='date'||dim==='week'||dim==='day'||dim==='shift')?'Overall OEE (includes not-run shifts) · percentile coloured':'OEE running (excludes not-run shifts) · percentile coloured';
-  renderMachineMatrix(_matrixRecords,_matrixNotRun,_matrixAllSlots,dim);
-}
-
-function showMatrixTip(evt,key){
-  const d=_matrixCellData[key];if(!d)return;
-  let html=`<div style="font-weight:600;color:var(--text2);margin-bottom:5px">${d.machLabel} · ${d.dimLabel}</div>`;
-  if(d.isBlank){
-    // Machine did not run on this date/week — show "Did not run" + not-run reasons only
-    html+=`<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Did not run</div>`;
-    if(d.notRunReasons&&d.notRunReasons.length){
-      html+=`<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-top:5px;margin-bottom:3px">Not-run reasons</div>`;
-      d.notRunReasons.forEach(([r,c])=>{
-        const lbl=r.length>42?r.slice(0,40)+'…':r;
-        html+=`<div style="display:flex;gap:6px;align-items:center;margin:2px 0"><span style="color:var(--text3);min-width:130px">${lbl}:</span><span style="font-family:var(--mono)">${c} slot${c>1?'s':''}</span></div>`;
-      });
-    } else {
-      html+=`<div style="color:var(--text3);font-size:10.5px">No reason recorded</div>`;
-    }
-  } else {
-    // Normal cell — show OEE + loss breakdown + DT causes + not-run reasons (date/week mode)
-    if(d.shiftRunPct!==undefined){
-      html+=`<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px">Overall OEE</div>`;
-      html+=`<div style="font-family:var(--mono);font-size:15px;color:var(--text);margin-bottom:2px">${d.oee}%</div>`;
-      html+=`<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">`;
-      html+=`<span style="color:var(--text3);min-width:90px;font-size:11px">Shift run %:</span><span style="font-family:var(--mono);font-size:11px">${d.shiftRunPct}%</span>`;
-      html+=`<span style="color:var(--text3);margin-left:8px;font-size:11px">OEE running:</span><span style="font-family:var(--mono);font-size:11px;margin-left:4px">${d.oeeRunning}%</span></div>`;
-    } else {
-      html+=`<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">OEE (running)</div>`;
-      html+=`<div style="font-family:var(--mono);font-size:15px;color:var(--text);margin-bottom:2px">${d.oee}%</div>`;
-      if(d.slots!==undefined){
-        html+=`<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px"><span style="color:var(--text3);min-width:90px;font-size:11px">Slots run:</span><span style="font-family:var(--mono);font-size:11px">${d.slots}</span></div>`;
-      }
-    }
-    html+=`<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px">Loss breakdown</div>`;
-    [['Availability loss',d.avail],['Cavity loss',d.cav],['Speed loss',d.speed],['Quality loss',d.qual]].forEach(([lbl,v])=>{
-      html+=`<div style="display:flex;gap:6px;align-items:center;margin:2px 0"><span style="color:var(--text3);min-width:110px">${lbl}:</span><span style="font-family:var(--mono)">${v}%</span></div>`;
-    });
-    if(d.topDt&&d.topDt.length){
-      html+=`<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-top:7px;margin-bottom:3px">Downtime causes</div>`;
-      d.topDt.forEach(([cause,h])=>{html+=`<div style="font-family:var(--mono);font-size:10.5px;color:var(--text2)">${cause}: ${h.toFixed(1)}h</div>`;});
-    }
-    if(d.notRunReasons&&d.notRunReasons.length){
-      html+=`<div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-top:7px;margin-bottom:3px">Not-run shift reasons</div>`;
-      d.notRunReasons.forEach(([r,c])=>{
-        const lbl=r.length>42?r.slice(0,40)+'…':r;
-        html+=`<div style="display:flex;gap:6px;align-items:center;margin:2px 0"><span style="color:var(--text3);min-width:130px">${lbl}:</span><span style="font-family:var(--mono)">${c} slot${c>1?'s':''}</span></div>`;
-      });
-    }
-  }
-  _extTT.innerHTML=html;_extTT.style.opacity='1';
-  const x=evt.clientX+14,y=evt.clientY-10;
-  _extTT.style.left=x+'px';_extTT.style.top=y+'px';
-  requestAnimationFrame(()=>{
-    const r=_extTT.getBoundingClientRect();
-    if(r.right>window.innerWidth-8)_extTT.style.left=(evt.clientX-r.width-14)+'px';
-    if(r.bottom>window.innerHeight-8)_extTT.style.top=(window.innerHeight-r.height-8)+'px';
-  });
-}
-function hideMatrixTip(){_extTT.style.opacity='0';}
-
-function renderMachineMatrix(records,not_run,all_slots,dim){
-  _matrixRecords=records||_matrixRecords;
-  _matrixNotRun=not_run||_matrixNotRun;
-  _matrixAllSlots=all_slots||_matrixAllSlots;
-  dim=dim||_matrixDim;
-  const el=document.getElementById('machineMatrixTable');
-  if(!el) return;
-  const machines=[...new Set(_matrixRecords.map(r=>r.machine_no))].sort((a,b)=>a-b);
-  const isDateMode=(dim==='date'||dim==='week'||dim==='day'||dim==='shift');
-  const dimFn=dim==='date'?r=>r.date
-    :dim==='week'?r=>getWeekStart(r.date)
-    :dim==='day'?r=>getDateDay(r.date)
-    :dim==='shift'?r=>r.shift
-    :dim==='operator'?r=>(r.operator_name||'—')
-    :r=>(r.product_name||'—');
-  const slotFn=isDateMode?(dim==='week'?s=>getWeekStart(s.date):dim==='day'?s=>getDateDay(s.date):dim==='shift'?s=>s.shift:s=>s.date):null;
-  const dimVals=[...new Set(_matrixRecords.map(dimFn).filter(Boolean))].sort();
-  // For operator/product: count slots per dim-value and sort descending by slot count
-  const dimSlotCounts={};
-  if(!isDateMode){
-    dimVals.forEach(dv=>{dimSlotCounts[dv]=_matrixRecords.filter(r=>dimFn(r)===dv).length;});
-    dimVals.sort((a,b)=>(dimSlotCounts[b]||0)-(dimSlotCounts[a]||0));
-  } else if(dim==='day'){
-    dimVals.sort((a,b)=>DAY_NAMES.indexOf(a)-DAY_NAMES.indexOf(b));
-  }
-  const totalDimSlots=Object.values(dimSlotCounts).reduce((s,v)=>s+v,0)||1;
-  if(!machines.length||!dimVals.length){
-    el.innerHTML='<div style="color:var(--text3);font-size:11px;padding:8px">No data to display</div>';
-    return;
-  }
-  Object.keys(_matrixCellData).forEach(k=>delete _matrixCellData[k]);
-  const vals={};const allVals=[];const overallVals={};
-
-  machines.forEach(m=>{
-    vals[m]={};
-    // ── Overall column ───────────────────────────────────────────────
-    const mr_all=_matrixRecords.filter(r=>r.machine_no===m);
-    const mnr_all=_matrixNotRun.filter(s=>s.machine_no===m);
-    const ms_all=_matrixAllSlots.filter(s=>s.machine_no===m);
-    const c_all=compute(mr_all,mnr_all,ms_all);
-    if(c_all){
-      const vAll=+((isDateMode?c_all.overall_oee:c_all.oee_running)*100).toFixed(1);
-      overallVals[m]=vAll; allVals.push(vAll);
-      const dtAll={};
-      DT_KEYS.forEach((k,i)=>{const h=mr_all.reduce((s,r)=>s+(r[k]||0),0);if(h>0.01)dtAll[DT_LABELS[i]]=h;});
-      const topDtAll=Object.entries(dtAll).sort((a,b)=>b[1]-a[1]).slice(0,4);
-      // Aggregate not-run reasons across all periods
-      const rc_all={};mnr_all.forEach(r=>{const k=r.reason||'Unknown';rc_all[k]=(rc_all[k]||0)+1;});
-      const nrAll=Object.entries(rc_all).sort((a,b)=>b[1]-a[1]).slice(0,5);
-      _matrixCellData[`${m}_overall`]={
-        machLabel:`M${m}`,dimLabel:'All periods combined',oee:vAll,
-        avail:+(c_all.avail_loss*100).toFixed(1),cav:+(c_all.cav_loss*100).toFixed(1),
-        speed:+(c_all.speed_loss*100).toFixed(1),qual:+(c_all.quality_loss*100).toFixed(1),
-        topDt:topDtAll,notRunReasons:nrAll,
-        ...(isDateMode?{shiftRunPct:+(c_all.shift_run_pct*100).toFixed(1),oeeRunning:+(c_all.oee_running*100).toFixed(1)}:{})
-      };
-    }
-    // ── Per-dimension cells ──────────────────────────────────────────
-    dimVals.forEach((dv,dvIdx)=>{
-      const mr=_matrixRecords.filter(r=>r.machine_no===m&&dimFn(r)===dv);
-      const dimLabel=dim==='week'?fmtWeekLabel(dv):dv;
-      let notRunReasons=[];
-      if(isDateMode){
-        const mnr=_matrixNotRun.filter(s=>s.machine_no===m&&slotFn(s)===dv);
-        const ms=_matrixAllSlots.filter(s=>s.machine_no===m&&slotFn(s)===dv);
-        const rc={};mnr.forEach(r=>{const k=r.reason||'Unknown';rc[k]=(rc[k]||0)+1;});
-        notRunReasons=Object.entries(rc).sort((a,b)=>b[1]-a[1]).slice(0,5);
-        if(!mr.length){
-          // Blank cell — store not-run data so tooltip still works
-          if(ms.length||notRunReasons.length){
-            _matrixCellData[`${m}_${dvIdx}`]={
-              machLabel:`M${m}`,dimLabel,isBlank:true,
-              notRunSlots:mnr.length,notRunReasons,topDt:[]
-            };
-          }
-          return;
-        }
-        const c=compute(mr,mnr,ms);if(!c)return;
-        const v=+(c.overall_oee*100).toFixed(1);
-        vals[m][dv]=v; allVals.push(v);
-        const dtTotals={};
-        DT_KEYS.forEach((k,i)=>{const h=mr.reduce((s,r)=>s+(r[k]||0),0);if(h>0.01)dtTotals[DT_LABELS[i]]=h;});
-        const topDt=Object.entries(dtTotals).sort((a,b)=>b[1]-a[1]).slice(0,4);
-        _matrixCellData[`${m}_${dvIdx}`]={
-          machLabel:`M${m}`,dimLabel,oee:v,
-          avail:+(c.avail_loss*100).toFixed(1),cav:+(c.cav_loss*100).toFixed(1),
-          speed:+(c.speed_loss*100).toFixed(1),qual:+(c.quality_loss*100).toFixed(1),
-          topDt,notRunReasons,
-          shiftRunPct:+(c.shift_run_pct*100).toFixed(1),oeeRunning:+(c.oee_running*100).toFixed(1)
-        };
-      } else {
-        if(!mr.length) return;
-        const totalDur=mr.reduce((s,r)=>s+(r.duration_hrs||0),0)||1;
-        const wt=(r,x)=>x*(r.duration_hrs||0);
-        const avail_l=mr.reduce((s,r)=>s+wt(r,r.duration_hrs?(r.duration_hrs-r.run_hrs)/r.duration_hrs:0),0)/totalDur;
-        const cav_l=mr.reduce((s,r)=>s+wt(r,r.total_cavities?(r.total_cavities-r.running_cavities)/r.total_cavities:0),0)/totalDur;
-        const qual_l=mr.reduce((s,r)=>s+wt(r,(r.total_rej_pcs+r.actual_good_pcs)>0?r.total_rej_pcs/(r.total_rej_pcs+r.actual_good_pcs):0),0)/totalDur;
-        const oee_r=mr.reduce((s,r)=>s+wt(r,r.target_pcs?r.actual_good_pcs/r.target_pcs:0),0)/totalDur;
-        const den=(1-avail_l)*(1-cav_l)*(1-qual_l);
-        const speed_l=den>0?Math.max(0,1-oee_r/den):0;
-        const v=+(oee_r*100).toFixed(1);
-        vals[m][dv]=v; allVals.push(v);
-        const dtTotals={};
-        DT_KEYS.forEach((k,i)=>{const h=mr.reduce((s,r)=>s+(r[k]||0),0);if(h>0.01)dtTotals[DT_LABELS[i]]=h;});
-        const topDt=Object.entries(dtTotals).sort((a,b)=>b[1]-a[1]).slice(0,4);
-        _matrixCellData[`${m}_${dvIdx}`]={
-          machLabel:`M${m}`,dimLabel,oee:v,slots:mr.length,
-          avail:+(avail_l*100).toFixed(1),cav:+(cav_l*100).toFixed(1),
-          speed:+(speed_l*100).toFixed(1),qual:+(qual_l*100).toFixed(1),topDt
-        };
-      }
-    });
-  });
-
-  // ── Overall row: aggregate across ALL machines per dim-column ──────────────
-  const rowOverallVals={};
-  // Grand total cell (all machines × all periods)
-  const _cgrand=compute(_matrixRecords,_matrixNotRun,_matrixAllSlots);
-  let grandVal;
-  if(_cgrand){
-    grandVal=isDateMode?+(_cgrand.overall_oee*100).toFixed(1):+(_cgrand.oee_running*100).toFixed(1);
-    allVals.push(grandVal);
-    const dtG={};DT_KEYS.forEach((k,i)=>{const h=_matrixRecords.reduce((s,r)=>s+(r[k]||0),0);if(h>0.01)dtG[DT_LABELS[i]]=h;});
-    const topDtG=Object.entries(dtG).sort((a,b)=>b[1]-a[1]).slice(0,4);
-    const rcG={};_matrixNotRun.forEach(r=>{const k=r.reason||'Unknown';rcG[k]=(rcG[k]||0)+1;});
-    const nrG=Object.entries(rcG).sort((a,b)=>b[1]-a[1]).slice(0,5);
-    _matrixCellData['overall_overall']={
-      machLabel:'All machines',dimLabel:'All periods combined',oee:grandVal,
-      avail:+(_cgrand.avail_loss*100).toFixed(1),cav:+(_cgrand.cav_loss*100).toFixed(1),
-      speed:+(_cgrand.speed_loss*100).toFixed(1),qual:+(_cgrand.quality_loss*100).toFixed(1),
-      topDt:topDtG,notRunReasons:nrG,
-      ...(isDateMode?{shiftRunPct:+(_cgrand.shift_run_pct*100).toFixed(1),oeeRunning:+(_cgrand.oee_running*100).toFixed(1)}:{})
-    };
-  }
-  dimVals.forEach((dv,dvIdx)=>{
-    const mr_dv=_matrixRecords.filter(r=>dimFn(r)===dv);
-    if(!mr_dv.length) return;
-    const dimLabelDv=dim==='week'?fmtWeekLabel(dv):dv;
-    if(isDateMode){
-      const mnr_dv=_matrixNotRun.filter(s=>slotFn(s)===dv);
-      const ms_dv=_matrixAllSlots.filter(s=>slotFn(s)===dv);
-      const c=compute(mr_dv,mnr_dv,ms_dv);if(!c)return;
-      const v=+(c.overall_oee*100).toFixed(1);
-      rowOverallVals[dv]=v; allVals.push(v);
-      const dtT={};DT_KEYS.forEach((k,i)=>{const h=mr_dv.reduce((s,r)=>s+(r[k]||0),0);if(h>0.01)dtT[DT_LABELS[i]]=h;});
-      const topDt=Object.entries(dtT).sort((a,b)=>b[1]-a[1]).slice(0,4);
-      const rc={};mnr_dv.forEach(r=>{const k=r.reason||'Unknown';rc[k]=(rc[k]||0)+1;});
-      const nr=Object.entries(rc).sort((a,b)=>b[1]-a[1]).slice(0,5);
-      _matrixCellData[`overall_${dvIdx}`]={
-        machLabel:'All machines',dimLabel:dimLabelDv,oee:v,
-        avail:+(c.avail_loss*100).toFixed(1),cav:+(c.cav_loss*100).toFixed(1),
-        speed:+(c.speed_loss*100).toFixed(1),qual:+(c.quality_loss*100).toFixed(1),
-        topDt,notRunReasons:nr,
-        shiftRunPct:+(c.shift_run_pct*100).toFixed(1),oeeRunning:+(c.oee_running*100).toFixed(1)
-      };
-    } else {
-      const totalDur=mr_dv.reduce((s,r)=>s+(r.duration_hrs||0),0)||1;
-      const wt=(r,x)=>x*(r.duration_hrs||0);
-      const avail_l=mr_dv.reduce((s,r)=>s+wt(r,r.duration_hrs?(r.duration_hrs-r.run_hrs)/r.duration_hrs:0),0)/totalDur;
-      const cav_l=mr_dv.reduce((s,r)=>s+wt(r,r.total_cavities?(r.total_cavities-r.running_cavities)/r.total_cavities:0),0)/totalDur;
-      const qual_l=mr_dv.reduce((s,r)=>s+wt(r,(r.total_rej_pcs+r.actual_good_pcs)>0?r.total_rej_pcs/(r.total_rej_pcs+r.actual_good_pcs):0),0)/totalDur;
-      const oee_r=mr_dv.reduce((s,r)=>s+wt(r,r.target_pcs?r.actual_good_pcs/r.target_pcs:0),0)/totalDur;
-      const den=(1-avail_l)*(1-cav_l)*(1-qual_l);
-      const speed_l=den>0?Math.max(0,1-oee_r/den):0;
-      const v=+(oee_r*100).toFixed(1);
-      rowOverallVals[dv]=v; allVals.push(v);
-      const dtT={};DT_KEYS.forEach((k,i)=>{const h=mr_dv.reduce((s,r)=>s+(r[k]||0),0);if(h>0.01)dtT[DT_LABELS[i]]=h;});
-      const topDt=Object.entries(dtT).sort((a,b)=>b[1]-a[1]).slice(0,4);
-      _matrixCellData[`overall_${dvIdx}`]={
-        machLabel:'All machines',dimLabel:dimLabelDv,oee:v,slots:mr_dv.length,
-        avail:+(avail_l*100).toFixed(1),cav:+(cav_l*100).toFixed(1),
-        speed:+(speed_l*100).toFixed(1),qual:+(qual_l*100).toFixed(1),topDt
-      };
-    }
-  });
-
-  const sv=[...allVals].sort((a,b)=>a-b);
-  const n=sv.length,p33=n>1?sv[Math.floor(n/3)]:sv[0]||0,p67=n>1?sv[Math.floor(n*2/3)]:sv[0]||0;
-  const cellBg=v=>v>p67?'rgba(62,207,142,0.22)':v>p33?'rgba(245,158,11,0.18)':'rgba(244,63,94,0.18)';
-  const cellFg=v=>v>p67?'var(--green,#3ecf8e)':v>p33?'var(--amber)':'var(--red)';
-  const fmtH=dv=>{
-    if(dim==='date'){return fmtDateLabel(dv);}
-    if(dim==='week') return fmtWeekLabel(dv);
-    if(dim==='day'||dim==='shift') return dv;
-    return dv.length>14?dv.slice(0,13)+'…':dv;
-  };
-  // mkCell: blank cells with stored data get a tooltip handler too
-  const mkCell=(v,key,bold)=>{
-    const sep=bold?';border-right:2px solid var(--border)':'';
-    if(v===undefined){
-      const cd=_matrixCellData[key];
-      if(cd) return`<td style="color:var(--text3);cursor:default${sep}" data-k="${key}" onmouseover="showMatrixTip(event,'${key}')" onmouseout="hideMatrixTip()">—</td>`;
-      return`<td style="color:var(--text3)${sep}">—</td>`;
-    }
-    return`<td style="background:${cellBg(v)};color:${cellFg(v)};font-family:var(--mono);font-weight:${bold?700:600};cursor:default${sep}" data-k="${key}" onmouseover="showMatrixTip(event,'${key}')" onmouseout="hideMatrixTip()">${v}%</td>`;
-  };
-
-  const xlsDetailRows=[];
-  const dimColName=dim==='week'?'Week (Mon)':dim==='date'?'Date':dim==='day'?'Day':dim==='shift'?'Shift':dim==='operator'?'Operator':'Product';
-  const oeeColHdr=isDateMode?'Overall OEE%':'OEE running%';
-  const nrFmt=nr=>nr&&nr.length?nr.map(([r,c])=>`${r}: ${c} slot${c>1?'s':''}`).join('; '):'';
-
-  let t=`<table><thead><tr><th class="row-hdr">Machine</th>`;
-  t+=`<th style="border-right:2px solid var(--border)" title="Aggregate for entire filtered period">Overall</th>`;
-  dimVals.forEach(dv=>{t+=`<th title="${dv.replace(/"/g,'&quot;')}">${fmtH(dv)}</th>`;});
-  t+='</tr>';
-  if(!isDateMode){
-    t+=`<tr style="font-size:9px;font-weight:400"><th class="row-hdr" style="border-top:1px dashed var(--border)"></th>`;
-    t+=`<th style="border-right:2px solid var(--border);border-top:1px dashed var(--border)"></th>`;
-    dimVals.forEach(dv=>{
-      const cnt=dimSlotCounts[dv]||0;
-      const pct=+(cnt/totalDimSlots*100).toFixed(1);
-      t+=`<th style="font-weight:400;color:var(--text3);border-top:1px dashed var(--border);white-space:nowrap">${cnt} slot${cnt!==1?'s':''} <span style="opacity:.65">(${pct}%)</span></th>`;
-    });
-    t+='</tr>';
-  }
-  t+='</thead><tbody>';
-  // ── Overall row (pinned, slightly distinct style) ──
-  const mkRowHdrCell=(lbl,key)=>`<td class="row-hdr" style="font-weight:700;border-bottom:2px solid var(--border);font-size:10.5px" data-k="${key}" onmouseover="showMatrixTip(event,'${key}')" onmouseout="hideMatrixTip()">${lbl}</td>`;
-  const mkOverallCell=(v,key,bold)=>{
-    const sep=(bold?';border-right:2px solid var(--border)':'') +';border-bottom:2px solid var(--border)';
-    if(v===undefined) return`<td style="color:var(--text3)${sep}">—</td>`;
-    return`<td style="background:${cellBg(v)};color:${cellFg(v)};font-family:var(--mono);font-weight:700;cursor:default${sep}" data-k="${key}" onmouseover="showMatrixTip(event,'${key}')" onmouseout="hideMatrixTip()">${v}%</td>`;
-  };
-  t+=`<tr>${mkRowHdrCell('Overall','overall_overall')}`;
-  t+=mkOverallCell(grandVal,'overall_overall',true);
-  dimVals.forEach((dv,dvIdx)=>{t+=mkOverallCell(rowOverallVals[dv],`overall_${dvIdx}`,false);});
-  t+='</tr>';
-  machines.forEach(m=>{
-    t+=`<tr><td class="row-hdr">M${m}</td>`;
-    t+=mkCell(overallVals[m],`${m}_overall`,true);
-    dimVals.forEach((dv,dvIdx)=>{
-      const v=vals[m][dv],key=`${m}_${dvIdx}`;
-      t+=mkCell(v,key,false);
-      const cd=_matrixCellData[key];
-      if(cd){
-        if(v!==undefined){
-          xlsDetailRows.push([`M${m}`,cd.dimLabel,v,cd.avail,cd.cav,cd.speed,cd.qual,
-            cd.topDt.map(([c,h])=>`${c}: ${h.toFixed(1)}h`).join('; '),nrFmt(cd.notRunReasons)]);
-        } else if(cd.isBlank&&cd.notRunReasons&&cd.notRunReasons.length){
-          xlsDetailRows.push([`M${m}`,cd.dimLabel,'(did not run)','','','','','',nrFmt(cd.notRunReasons)]);
-        }
-      }
-    });
-    t+='</tr>';
-  });
-  t+='</tbody></table>';
-  el.innerHTML=t;
-
-  setChartData('machineMatrix',{
-    xLabel:'Machine',
-    labels:machines.map(m=>`M${m}`),
-    series:[
-      {name:'Overall',data:machines.map(m=>overallVals[m]!==undefined?overallVals[m]:null)},
-      ...dimVals.map((dv,i)=>({name:fmtH(dv),data:machines.map(m=>vals[m][dv]!==undefined?vals[m][dv]:null)}))
-    ],
-    extraSheets:xlsDetailRows.length?[{
-      name:'Loss Detail',
-      headers:['Machine',dimColName,oeeColHdr,'Avail loss%','Cav loss%','Speed loss%','Qual loss%','DT Causes','Not-run Reasons'],
-      rows:xlsDetailRows
-    }]:[]
-  });
-}
-
-
-
-let _trendMode='date';
-let _lossMode='date';
-
-function switchTrendView(mode,btn){
-  _trendMode=mode;
-  document.querySelectorAll('#trendToggle .mtx-btn').forEach(b=>b.classList.remove('mtx-active'));
-  if(btn) btn.classList.add('mtx-active');
-  renderTrendLine();
-}
-
-function switchLossView(mode,btn){
-  _lossMode=mode;
-  document.querySelectorAll('#lossTrendToggle .mtx-btn').forEach(b=>b.classList.remove('mtx-active'));
-  if(btn) btn.classList.add('mtx-active');
-  const{records,not_run}=getFiltered();
-  renderDailyLoss(records,not_run);
-}
-
-function renderShiftOeeBar(records, not_run){
-  destroyChart('shiftOeeBar');
-  const fType=document.getElementById('fType').value;
-  const fProduct=document.getElementById('fProduct').value;
-  const fOperator=document.getElementById('fOperator').value;
-  const productFilterActive=(fType!=='all'||fProduct!=='all'||fOperator!=='all');
-  const labels=[],vals=[];
-  ['A','B'].forEach(sh=>{
-    const dr=records.filter(r=>r.shift===sh);
-    if(!dr.length) return;
-    const dnr=(not_run||[]).filter(r=>r.shift===sh);
-    const ds=[...dr.map(r=>({date:r.date,shift:r.shift,machine_no:r.machine_no})),...dnr];
-    const c=compute(dr,dnr,ds);if(!c)return;
-    labels.push('Shift '+sh);
-    vals.push(+(( productFilterActive?c.oee_running:c.overall_oee)*100).toFixed(1));
-  });
-  if(!vals.length){destroyChart('shiftOeeBar');return;}
-  setChartData('shiftOeeBar',{xLabel:'Shift',labels,series:[{name:productFilterActive?'OEE (running)':'Overall OEE',data:vals}]});
-  const sorted=[...vals].sort((a,b)=>a-b);
-  const n=sorted.length;
-  const p33=n>1?sorted[Math.floor(n/3)]:sorted[0]||0;
-  const p67=n>1?sorted[Math.floor(n*2/3)]:sorted[0]||0;
-  const colors=vals.map(v=>v>p67?'rgba(62,207,142,0.75)':v>p33?'rgba(245,158,11,0.75)':'rgba(244,63,94,0.75)');
-  const ctx=document.getElementById('shiftOeeBar').getContext('2d');
-  charts['shiftOeeBar']=new Chart(ctx,{type:'bar',
-    data:{labels,datasets:[{label:productFilterActive?'OEE (running)':'Overall OEE',data:vals,backgroundColor:colors,borderRadius:4,barPercentage:0.45}]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`OEE: ${c.raw}%`}}},
-      scales:{y:{min:0,max:110,ticks:{color:cTick(),callback:v=>v+'%',font:{size:10}},grid:{color:cGrid()}},
-              x:{ticks:{color:cTick(),font:{size:12,weight:'700'}},grid:{display:false}}}}});
-}
-
-function renderShiftLossBar(records, not_run){
-  destroyChart('shiftLossBar');
-  const fType=document.getElementById('fType').value;
-  const fProduct=document.getElementById('fProduct').value;
-  const fOperator=document.getElementById('fOperator').value;
-  const productFilterActive=(fType!=='all'||fProduct!=='all'||fOperator!=='all');
-  const labels=[],snr=[],avail=[],cav=[],speed=[],qual=[];
-  const shiftTooltipData={};
-  ['A','B'].forEach(sh=>{
-    const dr=records.filter(r=>r.shift===sh);
-    if(!dr.length) return;
-    const dnr=(not_run||[]).filter(r=>r.shift===sh);
-    const ds=[...dr.map(r=>({date:r.date,shift:r.shift,machine_no:r.machine_no})),...dnr];
-    const c=compute(dr,dnr,ds);if(!c)return;
-    const lbl='Shift '+sh;
-    labels.push(lbl);
-    snr.push(productFilterActive?0:+((1-c.shift_run_pct)*100).toFixed(1));
-    avail.push(+(c.avail_loss*100).toFixed(1));
-    cav.push(+(c.cav_loss*100).toFixed(1));
-    speed.push(+(c.speed_loss*100).toFixed(1));
-    qual.push(+(c.quality_loss*100).toFixed(1));
-    const reasonCounts={};
-    dnr.forEach(r=>{const k=r.reason||'Unknown';reasonCounts[k]=(reasonCounts[k]||0)+1;});
-    const topReasons=Object.entries(reasonCounts).sort((a,b)=>b[1]-a[1]).slice(0,3);
-    const dtTotals={};
-    DT_KEYS.forEach((k,i)=>{const h=dr.reduce((s,r)=>s+(r[k]||0),0);if(h>0.01)dtTotals[DT_LABELS[i]]=h;});
-    const topDt=Object.entries(dtTotals).sort((a,b)=>b[1]-a[1]).slice(0,3);
-    shiftTooltipData[lbl]={topReasons,topDt};
-  });
-  const _snrRows=[],_sdtRows=[];
-  Object.entries(shiftTooltipData).forEach(([sh,dd])=>{
-    dd.topReasons.forEach(([r,c])=>_snrRows.push([sh,r,c]));
-    dd.topDt.forEach(([cause,h])=>_sdtRows.push([sh,cause,+h.toFixed(1)]));
-  });
-  setChartData('shiftLossBar',{xLabel:'Shift',labels,series:[
-    {name:'Shift not run',data:snr},{name:'Avail (DT)',data:avail},{name:'Cavity',data:cav},{name:'Speed',data:speed},{name:'Quality',data:qual}
-  ],extraSheets:[
-    {name:'Not-run Reasons',headers:['Shift','Reason','Slots'],rows:_snrRows},
-    {name:'Downtime Causes',headers:['Shift','Cause','Hours'],rows:_sdtRows}
-  ]});
-  const ctx=document.getElementById('shiftLossBar').getContext('2d');
-  charts['shiftLossBar']=new Chart(ctx,{type:'bar',
-    data:{labels,datasets:[
-      {label:'Shift not run',data:snr,backgroundColor:'#3ecf8e44',borderColor:'#3ecf8e',borderWidth:1,stack:'l'},
-      {label:'Avail (DT)',data:avail,backgroundColor:'#4f8ef755',borderColor:'#4f8ef7',borderWidth:1,stack:'l'},
-      {label:'Cavity',data:cav,backgroundColor:'#a78bfa55',borderColor:'#a78bfa',borderWidth:1,stack:'l'},
-      {label:'Speed',data:speed,backgroundColor:'#f59e0b55',borderColor:'#f59e0b',borderWidth:1,stack:'l'},
-      {label:'Quality',data:qual,backgroundColor:'#f43f5e55',borderColor:'#f43f5e',borderWidth:1,stack:'l'},
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{position:'top',labels:{color:cLegend(),font:{size:10},padding:6}},
-      tooltip:{enabled:false,external:extTooltip,mode:'index',intersect:false,callbacks:{
-        afterBody:ctx=>{
-          const lbl=ctx[0].label;
-          const d=shiftTooltipData[lbl];
-          if(!d)return[];
-          const lines=[];
-          if(d.topReasons.length){lines.push('');lines.push('Not-run reasons:');d.topReasons.forEach(([r,c])=>lines.push(`  ${r.slice(0,30)}: ${c} slots`));}
-          if(d.topDt.length){lines.push('');lines.push('Downtime causes:');d.topDt.forEach(([r,h])=>lines.push(`  ${r}: ${h.toFixed(1)}h`));}
-          return lines;
-        }
-      }}},
-    scales:{y:{ticks:{color:cTick(),callback:v=>v+'%',font:{size:10}},grid:{color:cGrid()}},
-            x:{ticks:{color:cTick(),font:{size:12,weight:'700'}},grid:{display:false}}}}});
-}
-
-function renderDayOeeBar(records, not_run){
-  destroyChart('dayOeeBar');
-  const fType=document.getElementById('fType').value;
-  const fProduct=document.getElementById('fProduct').value;
-  const fOperator=document.getElementById('fOperator').value;
-  const productFilterActive=(fType!=='all'||fProduct!=='all'||fOperator!=='all');
-  const labels=[],vals=[];
-  DAY_NAMES.forEach(day=>{
-    const dr=records.filter(r=>getDateDay(r.date)===day);
-    if(!dr.length) return;
-    const dnr=(not_run||[]).filter(r=>getDateDay(r.date)===day);
-    const ds=[...dr.map(r=>({date:r.date,shift:r.shift,machine_no:r.machine_no})),...dnr];
-    const c=compute(dr,dnr,ds);if(!c)return;
-    labels.push(day);
-    vals.push(+(( productFilterActive?c.oee_running:c.overall_oee)*100).toFixed(1));
-  });
-  if(!vals.length){destroyChart('dayOeeBar');return;}
-  setChartData('dayOeeBar',{xLabel:'Day',labels,series:[{name:productFilterActive?'OEE (running)':'Overall OEE',data:vals}]});
-  const sorted=[...vals].sort((a,b)=>a-b);
-  const n=sorted.length;
-  const p33=n>1?sorted[Math.floor(n/3)]:sorted[0]||0;
-  const p67=n>1?sorted[Math.floor(n*2/3)]:sorted[0]||0;
-  const colors=vals.map(v=>v>p67?'rgba(62,207,142,0.75)':v>p33?'rgba(245,158,11,0.75)':'rgba(244,63,94,0.75)');
-  const ctx=document.getElementById('dayOeeBar').getContext('2d');
-  charts['dayOeeBar']=new Chart(ctx,{type:'bar',
-    data:{labels,datasets:[{label:productFilterActive?'OEE (running)':'Overall OEE',data:vals,backgroundColor:colors,borderRadius:3,barPercentage:0.55}]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`OEE: ${c.raw}%`}}},
-      scales:{y:{min:0,max:110,ticks:{color:cTick(),callback:v=>v+'%',font:{size:10}},grid:{color:cGrid()}},
-              x:{ticks:{color:cTick(),font:{size:11,weight:'600'}},grid:{display:false}}}}});
-}
-
-function renderDayLossBar(records, not_run){
-  destroyChart('dayLossBar');
-  const fType=document.getElementById('fType').value;
-  const fProduct=document.getElementById('fProduct').value;
-  const fOperator=document.getElementById('fOperator').value;
-  const productFilterActive=(fType!=='all'||fProduct!=='all'||fOperator!=='all');
-  const labels=[],snr=[],avail=[],cav=[],speed=[],qual=[];
-  const dayTooltipData={};
-  DAY_NAMES.forEach(day=>{
-    const dr=records.filter(r=>getDateDay(r.date)===day);
-    if(!dr.length) return;
-    const dnr=(not_run||[]).filter(r=>getDateDay(r.date)===day);
-    const ds=[...dr.map(r=>({date:r.date,shift:r.shift,machine_no:r.machine_no})),...dnr];
-    const c=compute(dr,dnr,ds);if(!c)return;
-    labels.push(day);
-    snr.push(productFilterActive?0:+((1-c.shift_run_pct)*100).toFixed(1));
-    avail.push(+(c.avail_loss*100).toFixed(1));
-    cav.push(+(c.cav_loss*100).toFixed(1));
-    speed.push(+(c.speed_loss*100).toFixed(1));
-    qual.push(+(c.quality_loss*100).toFixed(1));
-    const reasonCounts={};
-    dnr.forEach(r=>{const k=r.reason||'Unknown';reasonCounts[k]=(reasonCounts[k]||0)+1;});
-    const topReasons=Object.entries(reasonCounts).sort((a,b)=>b[1]-a[1]).slice(0,3);
-    const dtTotals={};
-    DT_KEYS.forEach((k,i)=>{const h=dr.reduce((s,r)=>s+(r[k]||0),0);if(h>0.01)dtTotals[DT_LABELS[i]]=h;});
-    const topDt=Object.entries(dtTotals).sort((a,b)=>b[1]-a[1]).slice(0,3);
-    dayTooltipData[day]={topReasons,topDt};
-  });
-  const _dnrRows=[],_ddtRows=[];
-  Object.entries(dayTooltipData).forEach(([day,dd])=>{
-    dd.topReasons.forEach(([r,c])=>_dnrRows.push([day,r,c]));
-    dd.topDt.forEach(([cause,h])=>_ddtRows.push([day,cause,+h.toFixed(1)]));
-  });
-  setChartData('dayLossBar',{xLabel:'Day',labels,series:[
-    {name:'Shift not run',data:snr},{name:'Avail (DT)',data:avail},{name:'Cavity',data:cav},{name:'Speed',data:speed},{name:'Quality',data:qual}
-  ],extraSheets:[
-    {name:'Not-run Reasons',headers:['Day','Reason','Slots'],rows:_dnrRows},
-    {name:'Downtime Causes',headers:['Day','Cause','Hours'],rows:_ddtRows}
-  ]});
-  const ctx=document.getElementById('dayLossBar').getContext('2d');
-  charts['dayLossBar']=new Chart(ctx,{type:'bar',
-    data:{labels,datasets:[
-      {label:'Shift not run',data:snr,backgroundColor:'#3ecf8e44',borderColor:'#3ecf8e',borderWidth:1,stack:'l'},
-      {label:'Avail (DT)',data:avail,backgroundColor:'#4f8ef755',borderColor:'#4f8ef7',borderWidth:1,stack:'l'},
-      {label:'Cavity',data:cav,backgroundColor:'#a78bfa55',borderColor:'#a78bfa',borderWidth:1,stack:'l'},
-      {label:'Speed',data:speed,backgroundColor:'#f59e0b55',borderColor:'#f59e0b',borderWidth:1,stack:'l'},
-      {label:'Quality',data:qual,backgroundColor:'#f43f5e55',borderColor:'#f43f5e',borderWidth:1,stack:'l'},
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{position:'top',labels:{color:cLegend(),font:{size:10},padding:6}},
-      tooltip:{enabled:false,external:extTooltip,mode:'index',intersect:false,callbacks:{
-        afterBody:ctx=>{
-          const day=ctx[0].label;
-          const d=dayTooltipData[day];
-          if(!d)return[];
-          const lines=[];
-          if(d.topReasons.length){lines.push('');lines.push('Not-run reasons:');d.topReasons.forEach(([r,c])=>lines.push(`  ${r.slice(0,30)}: ${c} slots`));}
-          if(d.topDt.length){lines.push('');lines.push('Downtime causes:');d.topDt.forEach(([r,h])=>lines.push(`  ${r}: ${h.toFixed(1)}h`));}
-          return lines;
-        }
-      }}},
-    scales:{y:{ticks:{color:cTick(),callback:v=>v+'%',font:{size:10}},grid:{color:cGrid()}},
-            x:{ticks:{color:cTick(),font:{size:11,weight:'600'}},grid:{display:false}}}}});
-}
-
-// weeksBack: 0 = this week (Mon→today), 1 = last full Mon–Sun, 2 = two weeks ago
-function computeWeekKPI(weeksBack){
-  // Anchor to latest available data date (not today) so it works with historical datasets
-  if(!DB||!DB.records||!DB.records.length) return null;
-  const latestStr=[...DB.records.map(r=>r.date)].sort().pop();
-  const latest=new Date(latestStr+'T00:00:00');
-  latest.setHours(0,0,0,0);
-  const dow=(latest.getDay()+6)%7; // 0=Mon … 6=Sun
-  const curMon=new Date(latest);curMon.setDate(latest.getDate()-dow);
-  const targetMon=new Date(curMon);targetMon.setDate(curMon.getDate()-weeksBack*7);
-  const targetEnd=weeksBack===0?new Date(latest):(()=>{const e=new Date(targetMon);e.setDate(targetMon.getDate()+6);return e;})();
-  const hFrom=_localDateStr(targetMon),hTo=_localDateStr(targetEnd);
-  const shift_=document.getElementById('fShift').value;
-  const machine_=document.getElementById('fMachine').value;
-  const fType_=document.getElementById('fType').value;
-  const fProduct_=document.getElementById('fProduct').value;
-  const fOperator_=document.getElementById('fOperator').value;
-  const inR=d=>d>=hFrom&&d<=hTo;
-  const hr=DB.records.filter(r=>inR(r.date)&&(shift_==='all'||r.shift===shift_)&&(machine_==='all'||r.machine_no==machine_)&&(fType_==='all'||r.product_type===fType_)&&(fProduct_==='all'||r.product_name===fProduct_)&&(fOperator_==='all'||r.operator_name===fOperator_));
-  if(!hr.length) return null;
-  const hnr=DB.not_run.filter(r=>inR(r.date)&&(shift_==='all'||r.shift===shift_)&&(machine_==='all'||r.machine_no==machine_));
-  const hs=DB.all_slots?DB.all_slots.filter(s=>inR(s.date)&&(shift_==='all'||s.shift===shift_)&&(machine_==='all'||s.machine_no==machine_)):[...hr.map(r=>({date:r.date,shift:r.shift,machine_no:r.machine_no})),...hnr];
-  return{...compute(hr,hnr,hs),_from:hFrom,_to:hTo};
-}
-
 function applyFilters(){
   const{records,not_run,all_slots}=getFiltered();
   const d=compute(records,not_run,all_slots);
@@ -2335,238 +1048,28 @@ function applyFilters(){
   const nDays=activeDates.length;
   document.getElementById('headerRange').textContent=from===to?`${from} · 1 day`:`${from}  →  ${to}  ·  ${nDays} days`;
 
-  // When Type / Product / Operator filter is active, shift run % is not meaningful
-  // (the slot denominator covers all products/types/operators, not just the filtered one).
-  // Override: Overall OEE = OEE Running so shift run % does not suppress the metric.
-  const fType=document.getElementById('fType').value;
-  const fProduct=document.getElementById('fProduct').value;
-  const fOperator=document.getElementById('fOperator').value;
-  const productFilterActive=(fType!=='all'||fProduct!=='all'||fOperator!=='all');
-  if(productFilterActive){
-    d.overall_oee=d.oee_running;
-    d.tgt_overall_oee=d.tgt_oee_running;
-    d.shift_run_pct=1;
-    d.ran_cnt=d.total_slots;
-    d.not_ran_cnt=0;
-  }
-  // Show/hide not-run card
-  const notRunCard=document.getElementById('notRunCard');
-  if(notRunCard) notRunCard.style.display=productFilterActive?'none':'';
-
   // KPIs
-  if(productFilterActive){
-    // Show # of concerned shifts purely as informational context (not used in OEE computation)
-    const _allRunShifts=DB.records.filter(r=>{
-      const from2=document.getElementById('fDateFrom').value,to2=document.getElementById('fDateTo').value;
-      const sh2=document.getElementById('fShift').value,ma2=document.getElementById('fMachine').value;
-      return(!from2||r.date>=from2)&&(!to2||r.date<=to2)&&(sh2==='all'||r.shift===sh2)&&(ma2==='all'||r.machine_no==ma2);
-    });
-    const _fc=records.length, _ac=_allRunShifts.length||1;
-    document.getElementById('k-shift-label').textContent='Concerned shifts';
-    document.getElementById('k-shift').textContent=_fc;
-    document.getElementById('k-shift-sub').textContent=`${(_fc/_ac*100).toFixed(1)}% of ${_ac} run shifts in period`;
-  } else {
-    document.getElementById('k-shift-label').textContent='Shift run %';
-    document.getElementById('k-shift').textContent=pct(d.shift_run_pct);
-    document.getElementById('k-shift-sub').textContent=`${d.pro_rata_ran!=null?d.pro_rata_ran.toFixed(1):d.ran_cnt} of ${d.total_slots} machine-slots ran`;
-  }
+  document.getElementById('k-shift').textContent=pct(d.shift_run_pct);
+  document.getElementById('k-shift-sub').textContent=`${d.ran_cnt} of ${d.total_slots} machine-slots ran`;
   document.getElementById('k-run').textContent=pct(d.oee_running);
   document.getElementById('k-run-target').textContent=`Target: ${pct(d.tgt_oee_running)} *`;
   document.getElementById('k-run-good').textContent=`${num(d.total_actual)} good · ${num(d.total_target)} target`;
   document.getElementById('k-oee').textContent=pct(d.overall_oee);
-  // ── Historical KPI comparison ──────────────────────────────────────
-  (()=>{
-    // Calendar-week comparisons: this wk (Mon→today) and prev wk (Mon–Sun)
-    const hc1=computeWeekKPI(0),hc2=computeWeekKPI(1);
-    const fmtH=v=>v!==null?pct(v):'—';
-    // Build short "DD/MM" range label for tooltip-like context
-    const wkLbl=h=>h&&h._from?`(${h._from.slice(8)}/${h._from.slice(5,7)})` :'';
-    const shEl=document.getElementById('k-shift-hist');
-    if(shEl){
-      if(!productFilterActive&&(hc1||hc2)){
-        const s1=hc1?fmtH(hc1.shift_run_pct):'—',s2=hc2?fmtH(hc2.shift_run_pct):'—';
-        shEl.innerHTML=`this wk: <span>${s1}</span> &nbsp;·&nbsp; prev wk: <span>${s2}</span>`;
-      } else shEl.innerHTML='';
-    }
-    const rnEl=document.getElementById('k-run-hist');
-    if(rnEl&&(hc1||hc2)){
-      const r1=hc1?fmtH(hc1.oee_running):'—',r2=hc2?fmtH(hc2.oee_running):'—';
-      rnEl.innerHTML=`this wk: <span>${r1}</span> &nbsp;·&nbsp; prev wk: <span>${r2}</span>`;
-    } else if(rnEl) rnEl.innerHTML='';
-    const oeEl=document.getElementById('k-oee-hist');
-    if(oeEl){
-      if(!productFilterActive&&(hc1||hc2)){
-        const o1=hc1?fmtH(hc1.overall_oee):'—',o2=hc2?fmtH(hc2.overall_oee):'—';
-        oeEl.innerHTML=`this wk: <span>${o1}</span> &nbsp;·&nbsp; prev wk: <span>${o2}</span>`;
-      } else if(productFilterActive&&(hc1||hc2)){
-        const o1=hc1?fmtH(hc1.oee_running):'—',o2=hc2?fmtH(hc2.oee_running):'—';
-        oeEl.innerHTML=`this wk: <span>${o1}</span> &nbsp;·&nbsp; prev wk: <span>${o2}</span>`;
-      } else oeEl.innerHTML='';
-    }
-  })();
 
   // Plant
-  // ── Waterfall drill data: top machines + products for cav/speed/quality ──
-  (()=>{
-    const totalDur=records.reduce((s,r)=>s+(r.duration_hrs||0),0)||1;
-    function machProdBreakdown(metricFn){
-      const mMap={},pMap={},mDur={},pDur={},mCnt={},pCnt={};
-      records.forEach(r=>{
-        const dur=r.duration_hrs||0;
-        const v=metricFn(r);
-        const m='M'+r.machine_no, p=r.product_name||'—';
-        mMap[m]=(mMap[m]||0)+v*dur; mDur[m]=(mDur[m]||0)+dur; mCnt[m]=(mCnt[m]||0)+1;
-        pMap[p]=(pMap[p]||0)+v*dur; pDur[p]=(pDur[p]||0)+dur; pCnt[p]=(pCnt[p]||0)+1;
-      });
-      // [name, loss%, slotCount] — all entries sorted desc by loss
-      const allM=Object.entries(mMap).map(([k,v])=>[k,+((v/(mDur[k]||1))*100).toFixed(1),mCnt[k]||0]).sort((a,b)=>b[1]-a[1]).filter(x=>x[1]>0.1);
-      const allP=Object.entries(pMap).map(([k,v])=>[k,+((v/(pDur[k]||1))*100).toFixed(1),pCnt[k]||0]).sort((a,b)=>b[1]-a[1]).filter(x=>x[1]>0.1);
-      return{topM:allM.slice(0,5),topP:allP.slice(0,5),allM,allP};
-    }
-    // Cavity loss per record
-    const cavBD=machProdBreakdown(r=>r.total_cavities?(r.total_cavities-r.running_cavities)/r.total_cavities:0,'cav');
-    // Speed loss: need to compute per-machine then spread to records — approximate per record
-    // using residual after avail/cav/qual
-    const speedBD=machProdBreakdown(r=>{
-      const al=r.duration_hrs?(r.duration_hrs-r.run_hrs)/r.duration_hrs:0;
-      const cl=r.total_cavities?(r.total_cavities-r.running_cavities)/r.total_cavities:0;
-      const ql=(r.total_rej_pcs+r.actual_good_pcs)>0?r.total_rej_pcs/(r.total_rej_pcs+r.actual_good_pcs):0;
-      const oeer=r.target_pcs?r.actual_good_pcs/r.target_pcs:0;
-      const den=(1-al)*(1-cl)*(1-ql);
-      return den>0?Math.max(0,1-oeer/den):0;
-    },'speed');
-    // Quality loss
-    const qualBD=machProdBreakdown(r=>(r.total_rej_pcs+r.actual_good_pcs)>0?r.total_rej_pcs/(r.total_rej_pcs+r.actual_good_pcs):0,'qual');
-    _wfDrillData={
-      cav:{pct:+(d.cav_loss*100).toFixed(1),machines:cavBD.topM,products:cavBD.topP,allM:cavBD.allM,allP:cavBD.allP},
-      speed:{pct:+(d.speed_loss*100).toFixed(1),machines:speedBD.topM,products:speedBD.topP,allM:speedBD.allM,allP:speedBD.allP},
-      quality:{pct:+(d.quality_loss*100).toFixed(1),machines:qualBD.topM,products:qualBD.topP,allM:qualBD.allM,allP:qualBD.allP}
-    };
-    // Store Excel data
-    const mkRows=(bd,label)=>[
-      ...bd.allM.map(([m,v,s])=>['Machine',m,label,+v,s]),
-      ...bd.allP.map(([p,v,s])=>['Product',p,label,+v,s])
-    ];
-    setTableData('wfDrill',{sheets:[{
-      name:'Drill-through',
-      headers:['Dimension','Name','Loss type','Loss %','Shifts'],
-      rows:[...mkRows(cavBD,'Cavity loss'),...mkRows(speedBD,'Speed loss'),...mkRows(qualBD,'Quality loss')]
-    }]});
-  })();
-  renderWaterfall('wfPlant',d,{hideShift:productFilterActive,drillData:true});
+  renderWaterfall('wfPlant',d);
   renderGroupedBars('notRunBarsPlant',buildNotRunEntries(d.reason_pcts,not_run),150);
   renderGroupedBars('dtBarsPlant',buildDtEntries(d.dt_breakdown,records),150);
-
-  // ── Excel data: Not-run reasons ──────────────────────────────────────────────
-  (()=>{
-    const nrTotal=not_run.length||1;
-    const nrByR={};
-    not_run.forEach(r=>{const k=r.reason||'Missing reason code';if(!nrByR[k])nrByR[k]={count:0,cat:categoriseNotRun(k)};nrByR[k].count++;});
-    const sumRows=Object.entries(nrByR).sort((a,b)=>b[1].count-a[1].count)
-      .map(([rsn,{count,cat}])=>[rsn,CAT_LABEL[cat],count,+(count/nrTotal*100).toFixed(1)]);
-    const machMap={};
-    not_run.forEach(r=>{
-      const m=`M${r.machine_no}`,rsn=r.reason||'Missing reason code';
-      if(!machMap[m])machMap[m]={};
-      machMap[m][rsn]=(machMap[m][rsn]||0)+1;
-    });
-    const machRows=[];
-    Object.entries(machMap).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([m,rsns])=>{
-      Object.entries(rsns).sort((a,b)=>b[1]-a[1]).forEach(([rsn,cnt])=>{
-        machRows.push([m,rsn,CAT_LABEL[categoriseNotRun(rsn)],cnt]);
-      });
-    });
-    // By Date and By Shift sheets
-    const dayMapXls={},shiftMapXls={},dateMapXls={};
-    (not_run||[]).forEach(r=>{
-      const key=r.reason||'Missing reason code';
-      if(!dayMapXls[key]) dayMapXls[key]={};
-      const _xday=typeof getDateDay==='function'?getDateDay(r.date):r.date;
-      dayMapXls[key][_xday]=(dayMapXls[key][_xday]||0)+1;
-      if(!dateMapXls[key]) dateMapXls[key]={};
-      dateMapXls[key][r.date]=(dateMapXls[key][r.date]||0)+1;
-      if(!shiftMapXls[key]) shiftMapXls[key]={};
-      shiftMapXls[key][r.shift||'?']=(shiftMapXls[key][r.shift||'?']||0)+1;
-    });
-    const dayRows=[],shiftRows=[],dateRows2=[];
-    Object.entries(dayMapXls).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([rsn,dMap])=>{
-      Object.entries(dMap).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([day,cnt])=>{
-        dayRows.push([day,rsn,CAT_LABEL[categoriseNotRun(rsn)],cnt]);
-      });
-    });
-    Object.entries(dateMapXls).forEach(([rsn,dMap])=>{
-      Object.entries(dMap).sort((a,b)=>b[1]-a[1]).forEach(([date,cnt])=>{
-        dateRows2.push([date,rsn,CAT_LABEL[categoriseNotRun(rsn)],cnt]);
-      });
-    });
-    dateRows2.sort((a,b)=>b[3]-a[3]||a[0].localeCompare(b[0]));
-    ['A','B','?'].forEach(sh=>{
-      if(!Object.values(shiftMapXls).some(m=>m[sh])) return;
-      Object.entries(shiftMapXls).forEach(([rsn,sMap])=>{
-        if(sMap[sh]) shiftRows.push([sh,rsn,CAT_LABEL[categoriseNotRun(rsn)],sMap[sh]]);
-      });
-    });
-    shiftRows.sort((a,b)=>a[0].localeCompare(b[0])||b[3]-a[3]);
-    setTableData('notRunReasons',{sheets:[
-      {name:'Summary',headers:['Reason','Category','Slots','% of total slots'],rows:sumRows},
-      {name:'By Machine',headers:['Machine','Reason','Category','Slots'],rows:machRows},
-      {name:'By Date',headers:['Date','Reason','Category','Slots'],rows:dateRows2},
-      {name:'By Day',headers:['Day','Reason','Category','Slots'],rows:dayRows},
-      {name:'By Shift',headers:['Shift','Reason','Category','Slots'],rows:shiftRows}
-    ]});
-  })();
-
-  // ── Excel data: Downtime split ───────────────────────────────────────────────
-  (()=>{
-    const _shiftHrs=d.total_shift_hrs||1;
-    const _srPct=d.shift_run_pct||1;
-    const sumRows=DT_KEYS.map((k,i)=>{
-      const h=records.reduce((s,r)=>s+(r[k]||0),0);
-      return[DT_LABELS[i],DT_CAT[DT_LABELS[i]]||'other',+h.toFixed(2),+(h/_shiftHrs*_srPct*100).toFixed(1)];
-    }).filter(r=>r[2]>0).sort((a,b)=>b[2]-a[2]);
-    const machNos=[...new Set(records.map(r=>r.machine_no))].sort((a,b)=>a-b);
-    const machRows=[];
-    machNos.forEach(m=>{
-      const mr=records.filter(r=>r.machine_no===m);
-      DT_KEYS.forEach((k,i)=>{
-        const h=mr.reduce((s,r)=>s+(r[k]||0),0);
-        if(h>0.001) machRows.push([`M${m}`,DT_LABELS[i],DT_CAT[DT_LABELS[i]]||'other',+h.toFixed(2)]);
-      });
-    });
-    machRows.sort((a,b)=>a[0].localeCompare(b[0])||b[3]-a[3]);
-    const prodRows2=[];
-    const allProds2=[...new Set(records.map(r=>r.product_name).filter(Boolean))].sort();
-    allProds2.forEach(prod=>{
-      const pr=records.filter(r=>r.product_name===prod);
-      DT_KEYS.forEach((k,i)=>{
-        const h=pr.reduce((s,r)=>s+(r[k]||0),0);
-        if(h>0.001) prodRows2.push([prod,DT_LABELS[i],DT_CAT[DT_LABELS[i]]||'other',+h.toFixed(2)]);
-      });
-    });
-    prodRows2.sort((a,b)=>a[0].localeCompare(b[0])||b[3]-a[3]);
-    setTableData('dtSplit',{sheets:[
-      {name:'Summary',headers:['DT Category','Type','Hours','% of theoretical hrs'],rows:sumRows},
-      {name:'By Machine',headers:['Machine','DT Category','Type','Hours'],rows:machRows},
-      {name:'By Product',headers:['Product','DT Category','Type','Hours'],rows:prodRows2}
-    ]});
-  })();
   renderNotRunLog(not_run);
-  renderDtStats(records,d.total_shift_hrs,d.total_sched_hrs,d.shift_run_pct);
+  renderDtStats(records,d.total_shift_hrs);
   renderMachineBar(records,not_run);
   renderTrendLine();
-  renderProductOeeBar(records,not_run);
-  renderOperatorOeeBar(records,not_run);
-  // Day/Shift OEE rendered by trendLine toggle (switchTrendView)
 
   // Machine
   renderLossComposition(records);
   renderDailyLoss(records,not_run);
-  // Day/Shift loss rendered by dailyLoss toggle (switchLossView)
-  renderProductLossBar(records);
-  renderOperatorLossBar(records);
   renderShiftCompare(from,to);
   renderMachineTable(records);
-  renderMachineMatrix(records,not_run,all_slots);
 }
 
 function switchView(view,btn){
@@ -2652,9 +1155,6 @@ const README_HTML = `
 <div class="rm-dt-row"><span class="rm-dt-dot" style="background:var(--unplanned)"></span><span class="rm-dt-name">Process failure</span><span class="rm-tag unplanned">Unplanned</span><span class="rm-dt-cat" style="margin-left:8px">Machine running but producing bad output — had to stop to fix</span></div>
 <div class="rm-dt-row"><span class="rm-dt-dot" style="background:var(--unplanned)"></span><span class="rm-dt-name">Machine breakdown</span><span class="rm-tag unplanned">Unplanned</span><span class="rm-dt-cat" style="margin-left:8px">Mechanical or electrical fault — waiting for maintenance</span></div>
 <div class="rm-dt-row"><span class="rm-dt-dot" style="background:var(--unplanned)"></span><span class="rm-dt-name">Mould breakdown</span><span class="rm-tag unplanned">Unplanned</span><span class="rm-dt-cat" style="margin-left:8px">Mould cracked, stuck, or damaged mid-run</span></div>
-<div class="rm-dt-row"><span class="rm-dt-dot" style="background:var(--unplanned)"></span><span class="rm-dt-name">Robot breakdown</span><span class="rm-tag unplanned">Unplanned</span><span class="rm-dt-cat" style="margin-left:8px">IML robot arm failure or sensor fault — machine halted</span></div>
-<div class="rm-dt-row"><span class="rm-dt-dot" style="background:var(--unplanned)"></span><span class="rm-dt-name">Manpower unavail.</span><span class="rm-tag unplanned">Unplanned</span><span class="rm-dt-cat" style="margin-left:8px">Insufficient operators on shift — machine could not run</span></div>
-<div class="rm-dt-row"><span class="rm-dt-dot" style="background:var(--unplanned)"></span><span class="rm-dt-name">Power cut</span><span class="rm-tag unplanned">Unplanned</span><span class="rm-dt-cat" style="margin-left:8px">Unplanned power outage or trip — machine stopped unexpectedly</span></div>
 <div class="rm-dt-row"><span class="rm-dt-dot" style="background:var(--other)"></span><span class="rm-dt-name">Other</span><span class="rm-tag other">Other</span><span class="rm-dt-cat" style="margin-left:8px">Reason not yet categorised — ask your supervisor to log it properly</span></div>
 
 <h2>🚫 Not-Run Reason Codes</h2>
@@ -2717,7 +1217,7 @@ function saveReadme(){
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'oee_dashboard_v7.2.html';
+  a.download = 'oee_dashboard.html';
   a.click();
   URL.revokeObjectURL(url);
   // Flash save confirmation
@@ -2759,28 +1259,32 @@ function initDropZone(){
     reader.onload=e=>{
       try{
         DB=JSON.parse(e.target.result);
-        if(!DB.records||!Array.isArray(DB.records)){
-          errEl.textContent='Invalid file — expected oee_data.json with a records array.'; DB=null; return;
-        }
-        if(!DB.not_run)  DB.not_run=[];
-        if(!DB.all_slots) DB.all_slots=[];
-        bootDashboard();
-      }catch(ex){
-        errEl.textContent='Could not parse file: '+ex.message; DB=null;
+        if(!DB.records||!Array.isArray(DB.records))throw new Error('Missing "records" array');
+        zone.style.display='none';
+        document.getElementById('app').style.display='block';
+        initDashboard();
+      }catch(err){
+        errEl.textContent='Invalid JSON: '+err.message;
       }
     };
     reader.readAsText(file);
   }
 
-  zone.addEventListener('dragover',e=>{e.preventDefault();box.classList.add('hover');});
-  zone.addEventListener('dragleave',()=>box.classList.remove('hover'));
-  zone.addEventListener('drop',e=>{
-    e.preventDefault(); box.classList.remove('hover');
+  // File input
+  inp.addEventListener('change',()=>handleFile(inp.files[0]));
+
+  // Drag events on document (not just the box)
+  document.addEventListener('dragover',e=>{e.preventDefault();box.classList.add('hover');zone.classList.add('drag-over');});
+  document.addEventListener('dragleave',e=>{if(!e.relatedTarget||e.relatedTarget===document.body){box.classList.remove('hover');zone.classList.remove('drag-over');}});
+  document.addEventListener('drop',e=>{
+    e.preventDefault();
+    box.classList.remove('hover');zone.classList.remove('drag-over');
+    // Only handle drop if drop zone is visible
+    if(zone.style.display==='none') return;
     handleFile(e.dataTransfer.files[0]);
   });
-  inp.addEventListener('change',()=>{handleFile(inp.files[0]); inp.value='';});
-}
-// Load current data from server
+
+  // Load current data from server
   window.loadServerData = function(){
 
   try {
@@ -2825,7 +1329,7 @@ function initDropZone(){
     console.error("❌ CRASH:", e);
   }
 };
-
+}
 
 function setDropTab(tab, btn){
   document.querySelectorAll('#dropZone .view-tab').forEach(b=>b.classList.remove('active'));
@@ -2842,46 +1346,70 @@ function setDropTab(tab, btn){
     hint.style.display='block';
     readme.style.display='none';
   }
+}
 
-
+// ═══════════════════════════════════════════════
+// THEME TOGGLE
+// ═══════════════════════════════════════════════
 function toggleTheme(){
-  const h=document.documentElement;
-  const isLight=h.classList.toggle('light');
-  const btn=document.getElementById('themeBtn');
-  if(btn) btn.textContent=isLight?'☀︎':'☾';
+  const isLight=document.documentElement.classList.toggle('light');
+  document.getElementById('themeBtn').textContent=isLight?'🌙':'☀︎';
+  updateChartDefaults();
+  if(DB) applyFilters();
 }
-function bootDashboard(){
-  // Populate machine filter
-  const mSel=document.getElementById('fMachine');
+function updateChartDefaults(){
+  const isLight=document.documentElement.classList.contains('light');
+  Chart.defaults.color=isLight?'#4a5068':'#555d78';
+  Chart.defaults.borderColor=isLight?'rgba(0,0,0,0.06)':'rgba(255,255,255,0.05)';
+}
+
+
+function initDashboard(){
+  const dates=[...new Set(DB.records.map(r=>r.date))].sort();
+  document.getElementById('fDateFrom').value=dates[0];
+  document.getElementById('fDateTo').value=dates[dates.length-1];
+
   const machines=[...new Set(DB.records.map(r=>r.machine_no))].sort((a,b)=>a-b);
-  mSel.innerHTML='<option value="all">All machines</option>';
-  machines.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent='M'+m;mSel.appendChild(o);});
+  const mSel=document.getElementById('fMachine');
+  machines.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=`Machine ${m}`;mSel.appendChild(o);});
 
-  // Populate operator filter
-  const oSel=document.getElementById('fOperator');
-  const ops=[...new Set(DB.records.map(r=>r.operator_name).filter(Boolean))].sort();
-  oSel.innerHTML='<option value="all">All operators</option>';
-  ops.forEach(op=>{const o=document.createElement('option');o.value=op;o.textContent=op;oSel.appendChild(o);});
-
-  // Populate product filter
+  const products=[...new Set(DB.records.map(r=>r.product_name))].sort();
   const pSel=document.getElementById('fProduct');
-  const prods=[...new Set(DB.records.map(r=>r.product_name))].sort();
-  pSel.innerHTML='<option value="all">All products</option>';
-  prods.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;pSel.appendChild(o);});
+  products.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;pSel.appendChild(o);});
 
-  // Show dashboard, hide drop zone
-  document.getElementById('dropZone').style.display='none';
-  document.getElementById('app').style.display='';
-  setQuick('all');
+  // Operator dropdown — only show if any record has operator_name
+  const operators=[...new Set(DB.records.map(r=>r.operator_name).filter(Boolean))].sort();
+  const oSel=document.getElementById('fOperator');
+  if(operators.length){
+    operators.forEach(op=>{const o=document.createElement('option');o.value=op;o.textContent=op;oSel.appendChild(o);});
+  } else {
+    oSel.parentElement.style.display='none'; // hide Operator filter if no data
+    oSel.previousElementSibling.style.display='none';
+  }
+
+  updateChartDefaults();
+  applyFilters();
 }
-window.initDropZone=initDropZone;
-window.addEventListener('DOMContentLoaded',initDropZone);
+
 initDropZone();
 //window.onload = loadServerData;
 window.onload = function () {
     console.log("Page loaded → calling loadServerData()");
     loadServerData();
 };
+setInterval(() => {
+  console.log("Refreshing data...");
+  fetch('output/oee_data.json')
+    .then(r => r.json())
+    .then(data => {
+      DB = data;
+      initDashboard();
+    })
+    .catch(err => console.error("Refresh error:", err));
+}, 30000); // 30 sec
+setInterval(() => {
+  location.reload();
+}, 60000); // 1 min
 </script>
 </body>
 </html>
