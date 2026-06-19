@@ -565,7 +565,6 @@ html.light .rm-editable:focus{background:rgba(79,142,247,0.08);}
 
 <script>
 let DB=null;
-
 window.loadServerData = function(){
 
   try {
@@ -610,6 +609,7 @@ window.loadServerData = function(){
     console.error("❌ CRASH:", e);
   }
 };
+
 const charts={};
 const chartData={};
 function setChartData(id,obj){chartData[id]=obj;}
@@ -2805,8 +2805,7 @@ function initDropZone(){
       try{
         DB=JSON.parse(e.target.result);
         if(!DB.records||!Array.isArray(DB.records)){
-          errEl.textContent='Invalid file — expected oee_data.json with a records array.'; 
-DB=null; return;
+          errEl.textContent='Invalid file — expected oee_data.json with a records array.'; DB=null; return;
         }
         if(!DB.not_run)  DB.not_run=[];
         if(!DB.all_slots) DB.all_slots=[];
@@ -2825,51 +2824,52 @@ DB=null; return;
     handleFile(e.dataTransfer.files[0]);
   });
   inp.addEventListener('change',()=>{handleFile(inp.files[0]); inp.value='';});
-
-}
 // Load current data from server
-window.loadServerData = function(){
+  window.loadServerData = function(){
 
-  const btn = document.getElementById('loadServerBtn');
-  const errEl = document.getElementById('dropErr');
+  try {
+    const btn = document.getElementById('loadServerBtn');
+    const errEl = document.getElementById('dropErr');
+    const zone = document.getElementById('dropZone');
 
-  if(btn){
-    btn.textContent = 'Loading...';
-    btn.disabled = true;
+    if (btn) {
+      btn.textContent = 'Loading…';
+      btn.disabled = true;
+    }
+    if (errEl) errEl.textContent = '';
+
+    fetch('output/oee_data.json')
+      .then(r=>{
+        if(!r.ok) throw new Error('Server returned '+r.status);
+        return r.json();
+      })
+      .then(data=>{
+        console.log("JSON loaded ✅", data);
+
+        DB = data;
+
+        if (zone) zone.style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+
+        // 🔥 TRY BOTH (jo exist kare wo chale)
+        if (typeof init === "function") {
+          init();
+        } else if (typeof initDashboard === "function") {
+          initDashboard();
+        } else {
+          console.error("❌ init function not found");
+        }
+      })
+      .catch(err=>{
+        console.error("❌ FETCH ERROR:", err);
+        if (errEl) errEl.textContent = 'Error: '+err.message;
+      });
+
+  } catch (e) {
+    console.error("❌ CRASH:", e);
   }
-
-  errEl.textContent = '';
-
-  fetch('output/oee_data.json')
-    .then(r=>{
-      if(!r.ok) throw new Error('Server returned ' + r.status);
-      return r.json();
-    })
-    .then(data=>{
-
-      RAW = data;
-
-      document.getElementById('dropZone').style.display='none';
-      document.getElementById('app').style.display='block';
-
-      initFilters();
-      applyFilters();
-
-    })
-    .catch(err=>{
-      errEl.textContent='Could not load data: ' + err.message;
-
-      if(btn){
-        btn.textContent='⬇ Load current data';
-        btn.disabled=false;
-      }
-    });
 };
-
-// Auto load when page opens
-window.addEventListener('load', function(){
-   setTimeout(loadServerData, 500);
-});
+}
 
 function setDropTab(tab, btn){
   document.querySelectorAll('#dropZone .view-tab').forEach(b=>b.classList.remove('active'));
@@ -2917,11 +2917,8 @@ function bootDashboard(){
   document.getElementById('app').style.display='';
   setQuick('all');
 }
-initDropZone();
-window.onload = function () {
-    console.log("Page loaded → calling loadServerData()");
-    loadServerData();
-};
+window.initDropZone=initDropZone;
+window.addEventListener('DOMContentLoaded',initDropZone);
 </script>
 </body>
 </html>
