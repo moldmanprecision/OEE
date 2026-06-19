@@ -2840,20 +2840,22 @@ window.loadServerData = function(){
 
   errEl.textContent = '';
 
-  fetch('https://oee-7877.onrender.com/output/oee_data.json')
+  fetch('/output/oee_data.json')
     .then(r=>{
       if(!r.ok) throw new Error('Server returned ' + r.status);
       return r.json();
     })
     .then(data=>{
+    console.log("JSON loaded ✅", data);
 
-      RAW = data;
+    DB = data;
 
-      document.getElementById('dropZone').style.display='none';
-      document.getElementById('app').style.display='block';
+    if (zone) zone.style.display = 'none';
+    document.getElementById('app').style.display = 'block';
 
-      initFilters();
-      applyFilters();
+    initFilters();
+    applyFilters();
+
 
     })
     .catch(err=>{
@@ -2866,10 +2868,7 @@ window.loadServerData = function(){
     });
 };
 
-// Auto load when page opens
-window.addEventListener('load', function(){
-   setTimeout(loadServerData, 500);
-});
+
 
 function setDropTab(tab, btn){
   document.querySelectorAll('#dropZone .view-tab').forEach(b=>b.classList.remove('active'));
@@ -2917,9 +2916,9 @@ function bootDashboard(){
   document.getElementById('app').style.display='';
   setQuick('all');
 }
-window.onload = function () {
-    loadServerData();
-};
+window.addEventListener('load', function () {
+    setTimeout(loadServerData, 500);
+});
 </script>
 </body>
 </html>
