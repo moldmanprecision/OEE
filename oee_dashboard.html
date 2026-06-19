@@ -589,7 +589,7 @@ window.loadServerData = function(){
 
         document.getElementById('dropZone').style.display = 'none';
         document.getElementById('app').style.display = 'block';
-
+        const errEl = document.getElementById('dropErr');
         // 🔥 TRY BOTH (jo exist kare wo chale)
         if (typeof init === "function") {
           init();
@@ -2829,46 +2829,53 @@ DB=null; return;
 window.loadServerData = function(){
 
   const btn = document.getElementById('loadServerBtn');
+  const errEl = document.getElementById('dropErr');
 
   if(btn){
     btn.textContent = 'Loading...';
     btn.disabled = true;
   }
 
-  errEl.textContent = '';
+  if(errEl) errEl.textContent = '';
 
   fetch('https://oee-7877.onrender.com/output/oee_data.json')
-    .then(r=>{
-    console.log("URL =", r.url);
-    console.log("STATUS =", r.status);
+    .then(r => {
+      console.log("URL =", r.url);
+      console.log("STATUS =", r.status);
 
-    if(!r.ok) throw new Error('Server returned '+r.status);
+      if(!r.ok) throw new Error('Server returned ' + r.status);
 
-    return r.json();
-})
-    .then(data=>{
-    console.log("JSON loaded ✅", data);
+      return r.json();
+    })
+    .then(data => {
 
-    DB = data;
+      console.log("JSON loaded ✅", data);
 
-    document.getElementById('dropZone').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
+      DB = data;
 
-    applyFilters();
+      document.getElementById('dropZone').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
 
+      applyFilters();
 
     })
-    .catch(err=>{
-      errEl.textContent='Could not load data: ' + err.message;
+    .catch(err => {
+
+      console.error(err);
+
+      if(errEl){
+        errEl.textContent = 'Could not load data: ' + err.message;
+      }
 
       if(btn){
-        btn.textContent='⬇ Load current data';
-        btn.disabled=false;
+        btn.textContent = '⬇ Load current data';
+        btn.disabled = false;
       }
     });
 };
-
-
+window.addEventListener('load', function () {
+    setTimeout(loadServerData, 500);
+});
 
 function setDropTab(tab, btn){
   document.querySelectorAll('#dropZone .view-tab').forEach(b=>b.classList.remove('active'));
@@ -2916,9 +2923,7 @@ function bootDashboard(){
   document.getElementById('app').style.display='';
   setQuick('all');
 }
-window.addEventListener('load', function () {
-    setTimeout(loadServerData, 500);
-});
+
 </script>
 </body>
 </html>
