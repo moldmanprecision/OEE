@@ -2805,7 +2805,8 @@ function initDropZone(){
       try{
         DB=JSON.parse(e.target.result);
         if(!DB.records||!Array.isArray(DB.records)){
-          errEl.textContent='Invalid file — expected oee_data.json with a records array.'; DB=null; return;
+          errEl.textContent='Invalid file — expected oee_data.json with a records array.'; 
+DB=null; return;
         }
         if(!DB.not_run)  DB.not_run=[];
         if(!DB.all_slots) DB.all_slots=[];
@@ -2849,17 +2850,13 @@ window.loadServerData = function(){
 
         DB = data;
 
-        if (zone) zone.style.display = 'none';
-        document.getElementById('app').style.display = 'block';
+if (!DB.not_run) DB.not_run = [];
+if (!DB.all_slots) DB.all_slots = [];
 
-        // 🔥 TRY BOTH (jo exist kare wo chale)
-        if (typeof init === "function") {
-          init();
-        } else if (typeof initDashboard === "function") {
-          initDashboard();
-        } else {
-          console.error("❌ init function not found");
-        }
+if (zone) zone.style.display = 'none';
+document.getElementById('app').style.display = 'block';
+
+bootDashboard();
       })
       .catch(err=>{
         console.error("❌ FETCH ERROR:", err);
