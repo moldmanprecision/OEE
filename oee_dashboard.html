@@ -2825,7 +2825,7 @@ function initDropZone(){
     console.error("❌ CRASH:", e);
   }
 };
-}
+
 
 function setDropTab(tab, btn){
   document.querySelectorAll('#dropZone .view-tab').forEach(b=>b.classList.remove('active'));
@@ -2873,9 +2873,7 @@ function bootDashboard(){
   document.getElementById('dropZone').style.display='none';
   document.getElementById('app').style.display='';
   setQuick('all');
-
-//window.initDropZone=initDropZone;
-//window.addEventListener('DOMContentLoaded',initDropZone);
+}
 initDropZone();
 Window.onload = function () {
     console.log("Page loaded → calling loadServerData()");
