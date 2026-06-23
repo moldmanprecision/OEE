@@ -2876,6 +2876,10 @@ function bootDashboard(){
 }
 window.initDropZone=initDropZone;
 window.addEventListener('DOMContentLoaded',initDropZone);
+window.onload = function () {
+    console.log("Page loaded → calling loadServerData()");
+    loadServerData();
+};
 </script>
 </body>
 </html>
