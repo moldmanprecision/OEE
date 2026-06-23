@@ -2873,12 +2873,9 @@ function bootDashboard(){
   document.getElementById('dropZone').style.display='none';
   document.getElementById('app').style.display='';
   setQuick('all');
-
-initDropZone();
-Window.onload = function () {
-    console.log("Page loaded → calling loadServerData()");
-    loadServerData();
-};
+}
+window.initDropZone=initDropZone;
+window.addEventListener('DOMContentLoaded',initDropZone);
 </script>
 </body>
 </html>
