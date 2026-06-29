@@ -24,7 +24,6 @@ To specify a different folder:
 To write the JSON somewhere else:
     py oee_etl.py --output "D:\WORKING\OEE\\output\\oee_data.json"
 
-
 FILE NAMING
 -----------
 Each Excel file must contain the date somewhere in its name as DD_MM_YYYY.
@@ -119,6 +118,7 @@ OEE_COL_OLDEST = {
     "rej_plain_kg":     20,  # T
     "rej_trial_kg":     21,  # U
     "total_rej_pcs":    22,  # V
+    "std_weight_kg":     23,  # W  Total std material weight (kg, incl. rejected)
     # W (23): Total std material weight — skip
     # X (24): % target achievement (pre-computed) — skip
     # Y (25): Quality loss % (pre-computed) — skip
@@ -161,6 +161,7 @@ OEE_COL_OLD = {
     "rej_plain_kg":     21,  # U
     "rej_trial_kg":     22,  # V
     "total_rej_pcs":    23,  # W
+    "std_weight_kg":     24,  # X  Total std material weight (kg, incl. rejected)
     # cols 24-26 (X-Z) = material weight, % target, quality % — not needed
     "run_hrs":          27,  # AA
     "dt_label":         28,  # AB
@@ -201,6 +202,7 @@ OEE_COL_NEW = {
     "rej_plain_kg":     21,  # U
     "rej_trial_kg":     22,  # V
     "total_rej_pcs":    23,  # W
+    "std_weight_kg":     24,  # X  Total std material weight (kg, incl. rejected)
     # cols 24-26 (X-Z) = material weight, % target, quality % — not needed
     "run_hrs":          27,  # AA
     "dt_label":         28,  # AB
@@ -246,6 +248,7 @@ OEE_COL_NEWEST = {
     "rej_plain_kg":     21,  # U
     "rej_trial_kg":     22,  # V
     "total_rej_pcs":    23,  # W
+    "std_weight_kg":     24,  # X  Total std material weight (kg, incl. rejected)
     # cols 24-26 (X-Z) = material weight, % target, quality % — skip
     "run_hrs":          27,  # AA
     "dt_label":         28,  # AB
@@ -491,6 +494,7 @@ def parse_file(path):
             "target_pcs":       num("target_pcs"),
             "actual_good_pcs":  num("actual_good_pcs"),
             "total_rej_pcs":    num("total_rej_pcs"),
+            "std_weight_kg":    num("std_weight_kg"),
             "rej_label_kg":     num("rej_label_kg"),
             "rej_plain_kg":     num("rej_plain_kg"),
             "rej_trial_kg":     num("rej_trial_kg"),

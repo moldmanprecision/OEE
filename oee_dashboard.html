@@ -80,7 +80,7 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.5);cursor:po
 #machineMatrixTable td{padding:4px 8px;text-align:center;border-bottom:1px solid var(--border);}
 #machineMatrixTable td.row-hdr{text-align:left;font-weight:600;color:var(--text2);background:var(--bg2);position:sticky;left:0;}
 /* KPI tiles */
-.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
 .kpi-card{border-left:4px solid transparent;}
 .kpi-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px;}
 .kpi-value{font-family:var(--mono);font-size:32px;font-weight:500;line-height:1;margin-bottom:2px;}
@@ -370,6 +370,12 @@ html.light .rm-editable:focus{background:rgba(79,142,247,0.08);}
     <div class="kpi-sub">OEE running × shift run %</div>
     <div class="kpi-hist" id="k-oee-hist"></div>
   </div>
+  <div class="card kpi-card t-shift">
+    <div class="kpi-label">Avg daily production</div>
+    <div class="kpi-value" id="k-prod" style="color:var(--teal)">—</div>
+    <div class="kpi-sub">kg / day · incl. rejected wt</div>
+    <div class="kpi-hist" id="k-prod-hist"></div>
+  </div>
 </div>
 
 <!-- ── PLANT TAB ─────────────────────────────────────────────────── -->
@@ -419,7 +425,7 @@ html.light .rm-editable:focus{background:rgba(79,142,247,0.08);}
   <!-- Row A: Machine OEE | Loss by machine -->
   <div class="row row-2">
     <div class="card">
-      <div class="card-title"><span class="dot" style="background:var(--accent)"></span>Machine OEE<button class="dl-btn" onclick="downloadExcel('machineOeeBar','machine_oee.xlsx')" title="Download as Excel">↓ xls</button></div>
+      <div class="card-title"><span class="dot" style="background:var(--accent)"></span>Machine OEE<span id="machineMetricToggle" style="margin-left:6px;display:inline-flex;gap:3px"><button class="mtx-btn mtx-active" onclick="switchMachineMetric('oee',this)">OEE</button><button class="mtx-btn" onclick="switchMachineMetric('production',this)">Production</button></span><button class="dl-btn" onclick="downloadExcel('machineOeeBar','machine_oee.xlsx')" title="Download as Excel">↓ xls</button></div>
       <div style="height:200px"><canvas id="machineOeeBar"></canvas></div>
       <div class="oee-legend">
         <div class="oee-legend-item"><div class="oee-legend-dot" style="background:rgba(62,207,142,0.75)"></div>Top 33%</div>
@@ -436,7 +442,7 @@ html.light .rm-editable:focus{background:rgba(79,142,247,0.08);}
   <!-- Row B: OEE Trend | Loss Trend -->
   <div class="row row-2">
     <div class="card">
-      <div class="card-title"><span class="dot" style="background:var(--teal)"></span>OEE Trend<span id="trendToggle" style="margin-left:6px;display:inline-flex;gap:3px"><button class="mtx-btn mtx-active" onclick="switchTrendView('date',this)">Date</button><button class="mtx-btn" onclick="switchTrendView('day',this)">Day</button><button class="mtx-btn" onclick="switchTrendView('week',this)">Week</button><button class="mtx-btn" onclick="switchTrendView('shift',this)">Shift</button></span><button class="dl-btn" onclick="downloadExcel('trendLine','daily_oee_trend.xlsx')" title="Download as Excel">↓ xls</button></div>
+      <div class="card-title"><span class="dot" style="background:var(--teal)"></span>OEE Trend<span id="trendMetricToggle" style="margin-left:6px;display:inline-flex;gap:3px"><button class="mtx-btn mtx-active" onclick="switchTrendMetric('oee',this)">OEE</button><button class="mtx-btn" onclick="switchTrendMetric('production',this)">Production</button></span><span id="trendToggle" style="margin-left:6px;display:inline-flex;gap:3px"><button class="mtx-btn mtx-active" onclick="switchTrendView('date',this)">Date</button><button class="mtx-btn" onclick="switchTrendView('day',this)">Day</button><button class="mtx-btn" onclick="switchTrendView('week',this)">Week</button><button class="mtx-btn" onclick="switchTrendView('shift',this)">Shift</button></span><button class="dl-btn" onclick="downloadExcel('trendLine','daily_oee_trend.xlsx')" title="Download as Excel">↓ xls</button></div>
       <div style="height:200px"><canvas id="trendLine"></canvas></div>
     </div>
     <div class="card">
@@ -629,7 +635,7 @@ function downloadFullDump(){
       r.product_type,r.product_name,r.mould_no,
       r.duration_hrs,r.run_hrs,
       r.total_cavities,r.running_cavities,
-      r.target_pcs,r.actual_good_pcs,r.total_rej_pcs,
+      r.target_pcs,r.actual_good_pcs,r.total_rej_pcs,r.std_weight_kg||0,
       r.rej_label_kg||0,r.rej_plain_kg||0,r.rej_trial_kg||0,
       r.dt_label||0,r.dt_colour||0,r.dt_mould||0,
       r.dt_startup||0,
@@ -648,7 +654,7 @@ function downloadFullDump(){
 
     const oeeHdrs=['Date','Shift','Machine','Operator','Product Type','Product Name','Mould No',
       'Duration Hrs','Run Hrs','Total Cav','Running Cav',
-      'Target Pcs','Actual Good Pcs','Total Rej Pcs',
+      'Target Pcs','Actual Good Pcs','Total Rej Pcs','Std Material Wt kg',
       'Rej Label kg','Rej Plain kg','Rej Trial kg',
       'DT Label','DT Colour','DT Mould','DT Startup',
       'DT Label Unavail','DT RM/PM Unavail','DT Peel-off',
@@ -741,6 +747,7 @@ function compute(records,not_run_list,all_slots){
   // Raw sums (for display and downtime breakdown)
   const total_shift_hrs=s(r=>r.duration_hrs),total_run_hrs=s(r=>r.run_hrs);
   const total_target=s(r=>r.target_pcs),total_actual=s(r=>r.actual_good_pcs),total_rej=s(r=>r.total_rej_pcs);
+  const total_std_weight=s(r=>r.std_weight_kg);
   // Metrics — duration-weighted averages
   const avail_loss=s(r=>wt(r,r.duration_hrs?(r.duration_hrs-r.run_hrs)/r.duration_hrs:0))/totalDurW;
   const cav_loss=s(r=>wt(r,r.total_cavities?(r.total_cavities-r.running_cavities)/r.total_cavities:0))/totalDurW;
@@ -829,7 +836,7 @@ function compute(records,not_run_list,all_slots){
   avail_mach.sort((a,b)=>b.dt_hrs-a.dt_hrs);
 
   return {
-    total_shift_hrs,total_run_hrs,total_target,total_actual,total_rej,total_sched_hrs,
+    total_shift_hrs,total_run_hrs,total_target,total_actual,total_rej,total_sched_hrs,total_std_weight,
     avail_loss,cav_loss,speed_loss,quality_loss,
     oee_running,shift_run_pct,overall_oee,
     avail_rate,cav_rate,speed_rate,quality_rate,
@@ -1008,9 +1015,9 @@ function renderGroupedBars(containerId,entries,labelWidth){
       const barW=grandTotal>0?Math.round(e.pct/grandTotal*100):0;
       const bdSects=[];
       if(e.machMap&&Object.keys(e.machMap).length>0) bdSects.push({hdr:'By Machine',map:e.machMap,unit:e.unit||'slots',fmt:k=>`M${k}`,w:30});
-      if(e.dateMap&&Object.keys(e.dateMap).length>0) bdSects.push({hdr:'By Date',map:e.dateMap,unit:'slots',fmt:k=>{const p=k.split('-');return p[2]+'/'+p[1];},w:34,sort:'val'});
-      if(e.dayMap&&Object.keys(e.dayMap).length>0) bdSects.push({hdr:'By Day',map:e.dayMap,unit:'slots',fmt:k=>k,w:28});
-      if(e.shiftMap&&Object.keys(e.shiftMap).length>0) bdSects.push({hdr:'By Shift',map:e.shiftMap,unit:'slots',fmt:k=>k,w:20});
+      if(e.dateMap&&Object.keys(e.dateMap).length>0) bdSects.push({hdr:'By Date',map:e.dateMap,unit:e.timeUnit||'slots',fmt:k=>{const p=k.split('-');return p[2]+'/'+p[1];},w:34,sort:'val'});
+      if(e.dayMap&&Object.keys(e.dayMap).length>0) bdSects.push({hdr:'By Day',map:e.dayMap,unit:e.timeUnit||'slots',fmt:k=>k,w:28});
+      if(e.shiftMap&&Object.keys(e.shiftMap).length>0) bdSects.push({hdr:'By Shift',map:e.shiftMap,unit:e.timeUnit||'slots',fmt:k=>k,w:20});
       if(e.prodMap&&Object.keys(e.prodMap).length>0) bdSects.push({hdr:'By Product',map:e.prodMap,unit:'hrs',fmt:k=>k.length>16?k.slice(0,14)+'…':k,w:72});
       const hasBd=bdSects.length>0;
       html+=`<div class="stacked-bar-row" onclick="toggleBreakdown(this)" title="${hasBd?'Click for breakdown':''}">
@@ -1053,35 +1060,51 @@ function buildNotRunEntries(reason_pcts, not_run){
     shiftMap:shiftByReason[label]||{}
   })).sort((a,b)=>b.pct-a.pct);
 }
+const DT_TIME_SPLIT=new Set(['RM/PM unavail.','Label unavail.','Manpower unavail.','Label peel-off','Power cut']);
 function buildDtEntries(dt_breakdown, records){
-  const machByDt={},prodByDt={};
+  const machByDt={},prodByDt={},dateByDt={},dayByDt={},shiftByDt={};
   DT_KEYS.forEach((k,i)=>{
     const label=DT_LABELS[i];
-    machByDt[label]={};prodByDt[label]={};
+    machByDt[label]={};prodByDt[label]={};dateByDt[label]={};dayByDt[label]={};shiftByDt[label]={};
     (records||[]).forEach(r=>{
       const h=r[k]||0;
       if(h>0){
         machByDt[label][r.machine_no]=(machByDt[label][r.machine_no]||0)+h;
         const p=r.product_name||'—';
         prodByDt[label][p]=(prodByDt[label][p]||0)+h;
+        dateByDt[label][r.date]=(dateByDt[label][r.date]||0)+h;
+        const _d=typeof getDateDay==='function'?getDateDay(r.date):r.date;
+        dayByDt[label][_d]=(dayByDt[label][_d]||0)+h;
+        shiftByDt[label][r.shift||'?']=(shiftByDt[label][r.shift||'?']||0)+h;
       }
     });
   });
-  return DT_LABELS.map(label=>({
-    label,
-    pct:dt_breakdown[label]?.pct||0,
-    hrs:dt_breakdown[label]?.hrs||0,
-    cat:DT_CAT[label]||'other',
-    unit:'hrs',
-    machMap:machByDt[label]||{},
-    prodMap:prodByDt[label]||{}
-  })).filter(e=>e.pct>0.0001).sort((a,b)=>b.pct-a.pct);
+  return DT_LABELS.map(label=>{
+    const e={
+      label,
+      pct:dt_breakdown[label]?.pct||0,
+      hrs:dt_breakdown[label]?.hrs||0,
+      cat:DT_CAT[label]||'other',
+      unit:'hrs',
+      machMap:machByDt[label]||{},
+      prodMap:prodByDt[label]||{}
+    };
+    // Selected reasons also get date / day-of-week / shift splits (in hours)
+    if(DT_TIME_SPLIT.has(label)){
+      e.dateMap=dateByDt[label]||{};
+      e.dayMap=dayByDt[label]||{};
+      e.shiftMap=shiftByDt[label]||{};
+      e.timeUnit='hrs';
+    }
+    return e;
+  }).filter(e=>e.pct>0.0001).sort((a,b)=>b.pct-a.pct);
 }
 
 // ═══════════════════════════════════════════════
 // CHARTS
 // ═══════════════════════════════════════════════
 function renderMachineBar(records,not_run){
+  if(_machineMetric==='production'){ return renderMachineProductionIML(records); }
   destroyChart('machineOeeBar');
   const from=document.getElementById('fDateFrom').value,to=document.getElementById('fDateTo').value;
   const shift=document.getElementById('fShift').value;
@@ -1139,6 +1162,7 @@ function renderMachineBar(records,not_run){
 }
 
 function renderTrendLine(){
+  if(_trendMetric==='production'){ return renderTrendProductionIML(); }
   destroyChart('trendLine');
   const from=document.getElementById('fDateFrom').value,to=document.getElementById('fDateTo').value;
   const shift=document.getElementById('fShift').value,machine=document.getElementById('fMachine').value;
@@ -2089,6 +2113,7 @@ function renderMachineMatrix(records,not_run,all_slots,dim){
 
 
 let _trendMode='date';
+let _machineMetric='oee', _trendMetric='oee';
 let _lossMode='date';
 
 function switchTrendView(mode,btn){
@@ -2104,6 +2129,55 @@ function switchLossView(mode,btn){
   if(btn) btn.classList.add('mtx-active');
   const{records,not_run}=getFiltered();
   renderDailyLoss(records,not_run);
+}
+
+function switchMachineMetric(mode,btn){ _machineMetric=mode; document.querySelectorAll('#machineMetricToggle .mtx-btn').forEach(b=>b.classList.remove('mtx-active')); if(btn)btn.classList.add('mtx-active'); const f=getFiltered(); renderMachineBar(f.records,f.not_run); }
+function switchTrendMetric(mode,btn){ _trendMetric=mode; document.querySelectorAll('#trendMetricToggle .mtx-btn').forEach(b=>b.classList.remove('mtx-active')); if(btn)btn.classList.add('mtx-active'); renderTrendLine(); }
+function renderMachineProductionIML(records){
+  destroyChart('machineOeeBar');
+  const machines=[...new Set(records.map(r=>r.machine_no))].sort((a,b)=>a-b);
+  const labels=[],vals=[];
+  // Avg DAILY production per machine = that machine's total kg ÷ distinct dates it ran,
+  // so machines are comparable regardless of how many days each was active.
+  machines.forEach(m=>{ const mr=records.filter(r=>r.machine_no===m); const occ=new Set(mr.map(r=>r.date)).size||1; labels.push('M'+m); vals.push(Math.round(mr.reduce((a,r)=>a+(r.std_weight_kg||0),0)/occ)); });
+  const ctx=document.getElementById('machineOeeBar').getContext('2d');
+  setChartData('machineOeeBar',{xLabel:'Machine',labels,series:[{name:'Avg daily std material wt (kg)',data:vals}]});
+  charts['machineOeeBar']=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Avg daily std material wt (kg)',data:vals,backgroundColor:'rgba(79,142,247,0.75)',borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>num(c.raw)+' kg/day (incl. rejected)'}}},
+      scales:{y:{beginAtZero:true,ticks:{color:cTick(),callback:v=>num(v),font:{size:10}},grid:{color:cGrid()}},x:{ticks:{color:cTick(),font:{size:9}},grid:{display:false}}}}});
+}
+function renderTrendProductionIML(){
+  destroyChart('trendLine');
+  const{records}=getFiltered();
+  const ctx=document.getElementById('trendLine').getContext('2d');
+  let keys,getKey,lab;
+  if(_trendMode==='day'){ keys=DAY_NAMES.filter(d=>records.some(r=>getDateDay(r.date)===d)); getKey=r=>getDateDay(r.date); lab=k=>k; }
+  else if(_trendMode==='week'){ keys=[...new Set(records.map(r=>getWeekStart(r.date)))].sort(); getKey=r=>getWeekStart(r.date); lab=k=>fmtWeekLabel(k); }
+  else if(_trendMode==='shift'){ keys=['A','B'].filter(sh=>records.some(r=>r.shift===sh)); getKey=r=>r.shift; lab=k=>'Shift '+k; }
+  else { keys=[...new Set(records.map(r=>r.date))].sort(); getKey=r=>r.date; lab=k=>fmtDateLabel(k); }
+  const labels=[],vals=[];
+  keys.forEach(k=>{
+    labels.push(lab(k));
+    const grp=records.filter(r=>getKey(r)===k);
+    let v=grp.reduce((a,r)=>a+(r.std_weight_kg||0),0);
+    // Day view: per-occurrence daily average so weekday bars are comparable to avg-daily Overall
+    if(_trendMode==='day'){ const occ=new Set(grp.map(r=>r.date)).size||1; v=v/occ; }
+    vals.push(Math.round(v));
+  });
+  if(_trendMode!=='shift' && labels.length){
+    const totalKg=records.reduce((a,r)=>a+(r.std_weight_kg||0),0);
+    let div,suf;
+    if(_trendMode==='week'){ div=new Set(records.map(r=>getWeekStart(r.date))).size||1; suf='avg/week'; }
+    else if(_trendMode==='day'){ div=new Set(records.map(r=>r.date)).size||1; suf='avg daily'; }
+    else { div=new Set(records.map(r=>r.date)).size||1; suf='avg/day'; }
+    labels.push('Overall ('+suf+')'); vals.push(Math.round(totalKg/div));
+  }
+  setChartData('trendLine',{xLabel:_trendMode,labels,series:[{name:'Std material wt (kg)',data:vals}]});
+  charts['trendLine']=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Std material wt (kg)',data:vals,backgroundColor:'rgba(45,212,191,0.7)',borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>num(c.raw)+' kg (incl. rejected)'}}},
+      scales:{y:{beginAtZero:true,ticks:{color:cTick(),callback:v=>num(v),font:{size:10}},grid:{color:cGrid()}},x:{ticks:{color:cTick(),font:{size:9}},grid:{display:false}}}}});
 }
 
 function renderShiftOeeBar(records, not_run){
@@ -2374,6 +2448,7 @@ function applyFilters(){
   document.getElementById('k-run-target').textContent=`Target: ${pct(d.tgt_oee_running)} *`;
   document.getElementById('k-run-good').textContent=`${num(d.total_actual)} good · ${num(d.total_target)} target`;
   document.getElementById('k-oee').textContent=pct(d.overall_oee);
+  document.getElementById('k-prod').textContent=num((d.total_std_weight||0)/(nDays||1))+' kg';
   // ── Historical KPI comparison ──────────────────────────────────────
   (()=>{
     // Calendar-week comparisons: this wk (Mon→today) and prev wk (Mon–Sun)
@@ -2780,6 +2855,7 @@ function initDropZone(){
   });
   inp.addEventListener('change',()=>{handleFile(inp.files[0]); inp.value='';});
 }
+
 // Load current data from server
   window.loadServerData = function(){
 
@@ -2844,6 +2920,7 @@ function setDropTab(tab, btn){
   }
 
 }
+
 function toggleTheme(){
   const h=document.documentElement;
   const isLight=h.classList.toggle('light');
